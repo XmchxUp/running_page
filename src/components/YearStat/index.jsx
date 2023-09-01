@@ -21,8 +21,8 @@ const YearStat = ({ year, onClick }) => {
   }
   let sumDistance = 0;
   let streak = 0;
-  let pace = 0;
-  let paceNullCount = 0;
+  let pace = 0; // eslint-disable-line no-unused-vars
+  let paceNullCount = 0; // eslint-disable-line no-unused-vars
   let heartRate = 0;
   let heartRateNullCount = 0;
   let totalMetersAvail = 0;
@@ -45,7 +45,7 @@ const YearStat = ({ year, onClick }) => {
       streak = Math.max(streak, run.streak);
     }
   });
-  sumDistance = (sumDistance / 1000.0).toFixed(1);
+  sumDistance = parseFloat((sumDistance / 1000.0).toFixed(1));
   const avgPace = formatPace(totalMetersAvail / totalSecondsAvail);
   const hasHeartRate = !(heartRate === 0);
   const avgHeartRate = (heartRate / (runs.length - heartRateNullCount)).toFixed(
@@ -62,16 +62,12 @@ const YearStat = ({ year, onClick }) => {
         <Stat value={runs.length} description=" Runs" />
         <Stat value={sumDistance} description=" KM" />
         <Stat value={avgPace} description=" Avg Pace" />
-        <Stat
-          value={`${streak} day`}
-          description=" Streak"
-          className="mb0 pb0"
-        />
+        <Stat value={`${streak} day`} description=" Streak" />
         {hasHeartRate && (
           <Stat value={avgHeartRate} description=" Avg Heart Rate" />
         )}
       </section>
-      {hovered && (
+      {year !== "Total" && hovered && (
         <React.Suspense fallback="loading...">
           <YearSVG className={styles.yearSVG} />
         </React.Suspense>
