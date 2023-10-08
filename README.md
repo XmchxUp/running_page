@@ -1,8 +1,10 @@
 ## note1: clone or Fork before vercel 404 need to pull the latest code
 
-## note2: python3(python) in README means python3 python,
+## note2: python3(python) in README means python3 python
 
-## note3: use v2.0 need change vercel setting from gatsby to vercel
+## note3: use v2.0 need change vercel setting from gatsby to vite.
+
+## note4: 2023.09.26 garmin need secret_string(and in Actions) get `python run_page/garmin_sync.py ${email} ${password}` if cn `python run_page/garmin_sync.py ${email} ${password} --is-cn`
 
 <p align="center">
   <img width="150" src="https://raw.githubusercontent.com/shaonianche/gallery/master/running_page/running_page_logo.png" />
@@ -85,7 +87,7 @@ English | [简体中文](https://github.com/yihong0618/running_page/blob/master/
 
 ## How it works
 
-![image](https://user-images.githubusercontent.com/15976103/103496454-4294f600-4e79-11eb-9bd6-8eea7a07ddff.png)
+![image](https://github.com/yihong0618/running_page/assets/15976103/85d8d59d-2639-431e-8406-9d818afbd4ab)
 
 ## Features
 
@@ -121,7 +123,7 @@ Clone or fork the repo.
 git clone https://github.com/yihong0618/running_page.git --depth=1
 ```
 
-## Installation and testing (node >= 14.15.0 python >= 3.7)
+## Installation and testing (node >= 16 python >= 3.8)
 
 ```
 pip3 install -r requirements.txt
@@ -129,7 +131,7 @@ npm install -g corepack && corepack enable && pnpm install
 pnpm develop
 ```
 
-Open your browser and visit <http://localhost:8000/>
+Open your browser and visit <http://localhost:5173/>
 
 ## Docker
 
@@ -138,9 +140,9 @@ Open your browser and visit <http://localhost:8000/>
 # NRC
 docker build -t running_page:latest . --build-arg app=NRC --build-arg nike_refresh_token=""
 # Garmin
-docker build -t running_page:latest . --build-arg app=Garmin --build-arg email=""  --build-arg password=""
+docker build -t running_page:latest . --build-arg app=Garmin --build-arg secret_string=""
 # Garmin-CN
-docker build -t running_page:latest . --build-arg app=Garmin-CN --build-arg email=""  --build-arg password=""
+docker build -t running_page:latest . --build-arg app=Garmin-CN --build-arg secret_string=""
 # Strava
 docker build -t running_page:latest . --build-arg app=Strava --build-arg client_id=""  --build-arg client_secret=""  --build-arg refresh_token=""
 #Nike_to_Strava
@@ -269,20 +271,37 @@ If you only want `tcx` files add args --tcx
 
 If you only want `fit` files add args --fit
 
+If you are using Garmin as a data source, it is recommended that you pull the code to your local environment to run and obtain the Garmin secret.
+**The Python version must be >=3.8**
+
+#### Get Garmin Secret
+
+Enter the following command in the terminal
+
 ```python
-python3(python) run_page/garmin_sync.py ${your email} ${your password}
+# to get secret_string
+python3(python) run_page/get_garmin_secret.py ${your email} ${your password}
+```
+
+#### Execute Garmin Sync Script
+
+Copy the Secret output in the terminal,If you are using Github, please configure **GARMIN_SECRET_STRING** in Github Action.
+
+```python
+# use this secret_string
+python3(python) run_page/garmin_sync.py ${secret_string}
 ```
 
 example：
 
 ```python
-python3(python) run_page/garmin_sync.py example@gmail.com example
+python3(python) run_page/get_garmin_secret.py xxxxxxxxxxx
 ```
 
 only-run：
 
 ```python
-python3(python) run_page/garmin_sync.py example@gmail.com example --only-run
+python3(python) run_page/garmin_sync.py xxxxxxxxxxxxxx(secret_string) --only-run
 ```
 
 </details>
@@ -298,14 +317,35 @@ If you only want `tcx` files add args --tcx
 
 If you only want `fit` files add args --fit
 
+If you are using Garmin as a data source, it is recommended that you pull the code to your local environment to run and obtain the Garmin secret.
+**The Python version must be >=3.10**
+
+#### Get Garmin CN Secret
+
+Enter the following command in the terminal
+
 ```python
-python3(python) run_page/garmin_sync.py ${your email} ${your password} --is-cn
+# to get secret_string
+python3(python) run_page/get_garmin_secret.py ${your email} ${your password} --is-cn
 ```
+
+![get_garmin_cn_secret](docs/get_garmin_cn_secret.jpg)
+
+#### Execute Garmin CN Sync Script
+
+Copy the Secret output in the terminal,If you are using Github, please configure **GARMIN_SECRET_STRING_CN** in Github Action.
+![get_garmin_secret](docs/add_garmin_secret_cn_string.jpg)
 
 example：
 
 ```python
-python3(python) run_page/garmin_sync.py example@gmail.com example --is-cn
+python3(python) run_page/garmin_sync.py xxxxxxxxx(secret_string) --is-cn
+```
+
+only-run：
+
+```python
+python3(python) run_page/garmin_sync.py xxxxxxxxxxxxxx(secret_string)  --is-cn --only-run
 ```
 
 </details>
@@ -517,13 +557,13 @@ python3(python) run_page/nike_to_strava_sync.py eyJhbGciThiMTItNGIw******  xxx x
 2. Execute in the root directory:
 
 ```python
-python3(python) run_page/garmin_to_strava_sync.py  ${client_id} ${client_secret} ${strava_refresh_token} ${garmin_email} ${garmin_password} --is-cn
+python3(python) run_page/garmin_to_strava_sync.py  ${client_id} ${client_secret} ${strava_refresh_token} ${garmin_secret_string} --is-cn
 ```
 
 e.g.
 
 ```python
-python3(python) run_page/garmin_to_strava_sync.py  xxx xxx xxx xx xxx
+python3(python) run_page/garmin_to_strava_sync.py  xxx xxx xxx xx
 ```
 
 </details>
@@ -539,13 +579,13 @@ python3(python) run_page/garmin_to_strava_sync.py  xxx xxx xxx xx xxx
 2. Execute in the root directory:
 
 ```python
-python3(python) run_page/strava_to_garmin_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}  ${{ secrets.GARMIN_EMAIL }} ${{ secrets.GARMIN_PASSWORD }} ${{ secrets.STRAVA_EMAIL }} ${{ secrets.STRAVA_PASSWORD }}
+python3(python) run_page/strava_to_garmin_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}  ${{ secrets.GARMIN_SECRET_STRING }} ${{ secrets.STRAVA_EMAIL }} ${{ secrets.STRAVA_PASSWORD }}
 ```
 
 if your garmin account region is **China**, you need to execute the command:
 
 ```python
-python3(python) run_page/strava_to_garmin_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}  ${{ secrets.GARMIN_CN_EMAIL }} ${{ secrets.GARMIN_CN_PASSWORD }} ${{ secrets.STRAVA_EMAIL }} ${{ secrets.STRAVA_PASSWORD }} --is-cn
+python3(python) run_page/strava_to_garmin_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}  ${{ secrets.GARMIN_SECRET_STRING_CN }} ${{ secrets.STRAVA_EMAIL }} ${{ secrets.STRAVA_PASSWORD }} --is-cn
 ```
 
 If you want to add Garmin Device during sync, you should add `--use_fake_garmin_device` argument, this will add a Garmin Device (Garmin Forerunner 245 by default, and you can change device in `garmin_device_adaptor.py`) in synced Garmin workout record, this is essential when you want to sync the workout record to other APP like Keep, JoyRun etc.
@@ -555,7 +595,7 @@ If you want to add Garmin Device during sync, you should add `--use_fake_garmin_
 the final command will be:
 
 ```python
-python3(python) run_page/strava_to_garmin_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}  ${{ secrets.GARMIN_CN_EMAIL }} ${{ secrets.GARMIN_CN_PASSWORD }} ${{ secrets.STRAVA_EMAIL }} ${{ secrets.STRAVA_PASSWORD }} --use_fake_garmin_device
+python3(python) run_page/strava_to_garmin_sync.py ${{ secrets.STRAVA_CLIENT_ID }} ${{ secrets.STRAVA_CLIENT_SECRET }} ${{ secrets.STRAVA_CLIENT_REFRESH_TOKEN }}  ${{ secrets.GARMIN_SECRET_STRING_CN }} ${{ secrets.STRAVA_EMAIL }} ${{ secrets.STRAVA_PASSWORD }} --use_fake_garmin_device
 ```
 
 ps: **when initializing for the first time, if you have a large amount of strava data, some data may fail to upload, just retry several times.**
@@ -617,26 +657,38 @@ For more display effects, see:
 <summary> Use <code> Cloudflare </code> to deploy </summary>
 <br>
 
-1. Click `Create a project` in `Pages` to connect to your Repo.
+1. Login to [Cloudflare dashboard](https://dash.cloudflare.com).
 
-2. After clicking `Begin setup`, modify Project's `Build settings`.
+2. Click `Workers & Pages` on the left side.
 
-3. Select `Framework preset` to `Create React App`
+3. Click `Create application` and select `Pages` tab, connect your GitHub account and select `running_page` Repo, then click `Begin setup`.
 
-4. Scroll down, click `Environment variables`, then variable below:
+4. Scroll down to `Build settings`, choose `Create React App` from `Framework preset`, and set `Build output directory` to `dist`.
 
-5. Click `Save and Deploy`
+5. Scroll down, click `Environment variables (advanced)`, then add a variable like the below:
+
+   > Variable name = `PYTHON_VERSION`, Value = `3.7`
+
+6. Click `Save and Deploy`
 
 </details>
 
 <details>
 <summary> Deploy to GitHub Pages </summary>
 
-1. If you are using a custom domain for GitHub Pages, open [.github/workflows/gh-pages.yml](.github/workflows/gh-pages.yml), change `fqdn` value to the domain name of your site.
+1. Go to repository's `Settings -> GitHub Pages -> Source`, choose `GitHub Actions`
 
-2. Go to repository's `Settings -> GitHub Pages -> Source`, choose `GitHub Actions`
+2. Go to the repository's `Actions -> Workflows -> All Workflows`, choose `Run Data Sync` from the left panel, and click `Run workflow`.
 
-3. Go to repository's `Actions -> Workflows -> All Workflows`, choose `Publish GitHub Pages` from the left panel, click `Run workflow`. Make sure the workflow runs without errors, and `gh-pages` branch is created.
+- The `Run Data Sync` will update data and then trigger the `Publish GitHub Pages` workflow
+- Make sure the workflow runs without errors.
+
+3. Open your website to check on the results
+
+- note if the website doesn't reflect the latest data, please refresh it by `F5`.
+- Some browsers (e.g. Chrome) won't refresh if there is a cache, you then need to use `Ctrl+F5` (Windows) or `Shift+Cmd+r` (Mac) to force clearing the cache and reload the page.
+
+4. make sure you have write permissions in Workflow permissions settings.
 
 </details>
 
