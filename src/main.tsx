@@ -5,38 +5,26 @@ import { HelmetProvider } from 'react-helmet-async';
 import Index from './pages';
 import NotFound from './pages/404';
 import ReactGA from 'react-ga4';
-import { GOOGLE_ANALYTICS_TRACKING_ID } from './utils/const';
+import {
+  GOOGLE_ANALYTICS_TRACKING_ID,
+  USE_GOOGLE_ANALYTICS,
+} from './utils/const';
 import '@/styles/index.scss';
-import usePageTracking from './hooks/usePageTracking';
+import { withOptionalGAPageTracking } from './utils/trackRoute';
 
-ReactGA.initialize(GOOGLE_ANALYTICS_TRACKING_ID);
-
-interface TrackPageRouteProps {
-  children: React.ReactNode;
+if (USE_GOOGLE_ANALYTICS) {
+  ReactGA.initialize(GOOGLE_ANALYTICS_TRACKING_ID);
 }
-
-const TrackPageRoute = ({ children }: TrackPageRouteProps) => {
-  usePageTracking();
-  return <>{children}</>;
-};
 
 const routes = createBrowserRouter(
   [
     {
       path: '/',
-      element: (
-        <TrackPageRoute>
-          <Index />
-        </TrackPageRoute>
-      ),
+      element: withOptionalGAPageTracking(<Index />),
     },
     {
       path: '*',
-      element: (
-        <TrackPageRoute>
-          <NotFound />
-        </TrackPageRoute>
-      ),
+      element: withOptionalGAPageTracking(<NotFound />),
     },
   ],
   { basename: import.meta.env.BASE_URL }

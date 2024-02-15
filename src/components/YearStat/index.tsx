@@ -1,23 +1,18 @@
-import React from 'react';
+import { lazy, Suspense } from 'react';
 import Stat from '@/components/Stat';
 import useActivities from '@/hooks/useActivities';
 import { formatPace } from '@/utils/utils';
 import styles from './style.module.scss';
 import useHover from '@/hooks/useHover';
-import { yearStats } from '@assets/index'
+import { yearStats } from '@assets/index';
+import { loadSvgComponent } from '@/utils/svgUtils';
 
 const YearStat = ({ year, onClick }: { year: string, onClick: (_year: string) => void }) => {
   let { activities: runs, years } = useActivities();
   // for hover
   const [hovered, eventHandlers] = useHover();
   // lazy Component
-  const YearSVG = React.lazy(() => yearStats[`./year_${year}.svg`]()
-    .then((res) => ({ default: res }))
-    .catch((err) => {
-      console.error(err);
-      return { default: () => <div>Failed to load SVG</div> };
-    })
-  );
+  const YearSVG = lazy(() => loadSvgComponent(yearStats, `./year_${year}.svg`));
 
   if (years.includes(year)) {
     runs = runs.filter((run) => run.start_date_local.slice(0, 4) === year);
@@ -71,9 +66,9 @@ const YearStat = ({ year, onClick }: { year: string, onClick: (_year: string) =>
         )}
       </section>
       {year !== "Total" && hovered && (
-        <React.Suspense fallback="loading...">
+        <Suspense fallback="loading...">
           <YearSVG className={styles.yearSVG} />
-        </React.Suspense>
+        </Suspense>
       )}
       <hr color="red" />
     </div>
