@@ -1,9 +1,10 @@
 import * as mapboxPolyline from '@mapbox/polyline';
 import gcoord from 'gcoord';
 import { WebMercatorViewport } from 'viewport-mercator-project';
-import { chinaGeojson } from '@/static/run_countries';
+import { chinaGeojson, RPGeometry } from '@/static/run_countries';
+import worldGeoJson from '@surbowl/world-geo-json-zh/world.zh.json';
 import { chinaCities } from '@/static/city';
-import { MUNICIPALITY_CITIES_ARR, NEED_FIX_MAP, RUN_TITLES } from './const';
+import { MAIN_COLOR, MUNICIPALITY_CITIES_ARR, NEED_FIX_MAP, RUN_TITLES } from './const';
 import { FeatureCollection, LineString } from 'geojson';
 
 export type Coordinate = [number, number];
@@ -18,9 +19,9 @@ export interface Activity {
   type: string;
   start_date: string;
   start_date_local: string;
-  location_country?: string|null;
-  summary_polyline?: string|null;
-  average_heartrate?: number|null;
+  location_country?: string | null;
+  summary_polyline?: string | null;
+  average_heartrate?: number | null;
   average_speed: number;
   streak: number;
 }
@@ -149,7 +150,7 @@ const pathForRun = (run: Activity): Coordinate[] => {
   try {
     if (!run.summary_polyline) {
       return [];
-    };
+    }
     const c = mapboxPolyline.decode(run.summary_polyline);
     // reverse lat long for mapbox
     c.forEach((arr) => {
@@ -170,7 +171,9 @@ const geoJsonForRuns = (runs: Activity[]): FeatureCollection<LineString> => ({
 
     return {
       type: 'Feature',
-      properties: {},
+      properties: {
+        color: MAIN_COLOR,
+      },
       geometry: {
         type: 'LineString',
         coordinates: points,
@@ -179,7 +182,10 @@ const geoJsonForRuns = (runs: Activity[]): FeatureCollection<LineString> => ({
   }),
 });
 
-const geoJsonForMap = () => chinaGeojson;
+const geoJsonForMap = (): FeatureCollection<RPGeometry> => ({
+    type: 'FeatureCollection',
+    features: worldGeoJson.features.concat(chinaGeojson.features),
+  })
 
 const titleForRun = (run: Activity): string => {
   const runDistance = run.distance / 1000;
