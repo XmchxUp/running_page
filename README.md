@@ -232,9 +232,11 @@ const USE_DASH_LINE = true;
 const LINE_OPACITY = 0.4;
 // styling: set to `true` if you want to display only the routes without showing the map
 // Note: This config only affects the page display; please refer to "privacy protection" below for data protection
-const PRIVACY_MODE = false;
+// update for now 2024/11/17 the privacy mode is true
+const PRIVACY_MODE = true;
+// update for now 2024/11/17 the lights on default is false
 // styling: set to `false` if you want to make light off as default, only effect when `PRIVACY_MODE` = false
-const LIGHTS_ON = true;
+const LIGHTS_ON = false;
 ```
 
 - To use Google Analytics, you need to modify the configuration in the `src/utils/const.ts` file.
@@ -454,17 +456,20 @@ python3(python) run_page/garmin_sync_cn_global.py ${garmin_cn_secret_string} ${g
 1. Sign in/Sign up [NikeRunClub](https://www.nike.com/) account
    ![login](https://github.com/user-attachments/assets/659341fb-4abf-491e-bda7-bfca968921b3)
 2. after successful login,openF12->Application->localstorage-> copy the content of "access_token" from the value of key`https://www.nike.com`.
-![developer_mode](https://github.com/user-attachments/assets/c932318d-a123-4505-8fd8-b46946c25d29)
-3. modify the code in the "nike_sync.py" file and paste the content you just copied as shown in the following image.
-![nike_sync.py](https://github.com/user-attachments/assets/6de91725-ed17-4338-96d5-727eb75cee24)
-4. Execute in the root directory , you should be able to see the image below, and then you can log into your account on the mobile as usual:
+3. Execute in the root directory , you should be able to see the image below, and then you can log into your account on the mobile as usual:
 
 ```bash
-python3(python) run_page/nike_sync.py aaaaa
+python3(python) run_page/nike_sync.py ${access_token}
 ```
 ![tg_image_166091873](https://github.com/user-attachments/assets/9d4851d6-849a-4bb7-8ffe-5358fa7328b2)
 
 if you want to automate the submission of NRC data, you can refer to [issue692](https://github.com/yihong0618/running_page/issues/692#issuecomment-2218849713).
+
+If you've previously synced activities and want to continue syncing new ones, with `--continue-sync` args
+
+```bash
+python3(python) run_page/nike_sync.py ${access_token} --continue-sync
+```
 
 </details>
 

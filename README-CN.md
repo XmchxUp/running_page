@@ -246,11 +246,13 @@ siteMetadata: {
 const USE_DASH_LINE = true;
 // styling: 透明度：[0, 1]
 const LINE_OPACITY = 0.4;
+// update for now 2024/11/17 the privacy mode is true
 // styling: 开启隐私模式(不显示地图仅显示轨迹): 设置为 `true`
 // 注意：此配置仅影响页面显示，数据保护请参考下方的 "隐私保护"
-const PRIVACY_MODE = false;
+const PRIVACY_MODE = true;
+// update for now 2024/11/17 the lights on default is false
 // styling: 默认关灯: 设置为 `false`, 仅在隐私模式关闭时生效(`PRIVACY_MODE` = false)
-const LIGHTS_ON = true;
+const LIGHTS_ON = false;
 ```
 
 > 隐私保护：设置下面环境变量：
@@ -652,7 +654,7 @@ python3(python) run_page/garmin_sync_cn_global.py ${garmin_cn_secret_string} ${g
 
 <br>
 
-> Please note:由于nike run club已经在中国大陆停止运营，所以只能通过vpn的方式进行登录。在开始之前先确认自己是全局的非中国大陆的代理，能够正确的访问`nike.com`而不是`nike.com.cn` 如下图所示.
+> Please note:由于nike run club已经在中国大陆停止运营，所以只能通过 vpn 的方式进行登录。在开始之前先确认自己是全局的非中国大陆的代理，能够正确的访问`nike.com`而不是`nike.com.cn` 如下图所示.
 
 ![nike.com](https://github.com/user-attachments/assets/8ce6ae8f-4bc6-4522-85ec-3e5b7590e96d)
 <br>
@@ -661,13 +663,17 @@ python3(python) run_page/garmin_sync_cn_global.py ${garmin_cn_secret_string} ${g
    ![login](https://github.com/user-attachments/assets/659341fb-4abf-491e-bda7-bfca968921b3)
 2. 登录成功后,键盘打开F12->Application->localstorage-> 复制键为`https://www.nike.com`的值中的`access_token`的内容.
    ![developer_mode](https://github.com/user-attachments/assets/c932318d-a123-4505-8fd8-b46946c25d29)
-3. 修改 `nike_sync.py` 文件中的代码,并且把你刚才复制的内容粘贴进去 如下图所示.
-   ![nike_sync.py](https://github.com/user-attachments/assets/6de91725-ed17-4338-96d5-727eb75cee24)
-4. 在根目录执行,你应该就可以看到下图中的内容，然后你就可以正常在你的手机版NRC里登录你的账号了:
+3. 在根目录执行,你应该就可以看到下图中的内容，然后你就可以正常在你的手机版NRC里登录你的账号了:
 
 ```bash
-python3(python) run_page/nike_sync.py aaaaa
+python3(python) run_page/nike_sync.py ${access_token}
 ```
+
+如果你同步了一次（已经完成同步）想继续同步新的
+```bash
+python3(python) run_page/nike_sync.py ${access_token} --continue-sync
+```
+
 ![tg_image_166091873](https://github.com/user-attachments/assets/9d4851d6-849a-4bb7-8ffe-5358fa7328b2)
 
 如果你想自动化同步NRC中的运动数据,去 [issue692](https://github.com/yihong0618/running_page/issues/692#issuecomment-2218849713)中查看相关内容.
@@ -994,7 +1000,7 @@ python3(python) run_page/keep_to_strava_sync.py ${your mobile} ${your password} 
 3. run_data_sync.yml中的修改：
 
     ```yaml
-    RUN_TYPE: keep_to_starva_sync
+    RUN_TYPE: keep_to_strava_sync
     ```
 
 </details>
