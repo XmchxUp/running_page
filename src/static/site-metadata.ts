@@ -17,11 +17,11 @@ const data: ISiteMetadataResult = {
   navLinks: [
     {
       name: 'Blog',
-      url: 'https://xmchxup.github.io/',
+      url: 'https://xmchx.vercel.app',
     },
     {
       name: 'About',
-      url: 'https://github.com/XmchxUp',
+      url: 'https://xmchx.vercel.app/post/about',
     },
   ],
 };
