@@ -148,7 +148,7 @@ Clone or fork the repo.
 git clone https://github.com/yihong0618/running_page.git --depth=1
 ```
 
-## Installation and testing (node >= 16 python >= 3.8)
+## Installation and testing (node >= 20 python >= 3.11)
 
 ```bash
 pip3 install -r requirements.txt
@@ -849,7 +849,7 @@ For more display effects, see:
 
 5. Scroll down, click `Environment variables (advanced)`, then add a variable like the below:
 
-   > Variable name = `PYTHON_VERSION`, Value = `3.7`
+   > Variable name = `PYTHON_VERSION`, Value = `3.11`
 
 6. Click `Save and Deploy`
 

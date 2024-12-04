@@ -166,7 +166,7 @@ R.I.P. 希望大家都能健康顺利的跑过终点，逝者安息。
 git clone https://github.com/yihong0618/running_page.git --depth=1
 ```
 
-## 安装及测试 (node >= 16 python >= 3.8)
+## 安装及测试 (node >= 20 python >= 3.11)
 
 ```bash
 pip3 install -r requirements.txt
@@ -1071,7 +1071,7 @@ python3(python) run_page/gen_svg.py --from-db --type circular --use-localtime
 
 5. 下滑点击 `环境变量 (高级)`，并添加一个如下的变量：
 
-   > 变量名称 = `PYTHON_VERSION`, 值 = `3.8`
+   > 变量名称 = `PYTHON_VERSION`, 值 = `3.11`
 
 6. 点击 `保存并部署`，完成部署。
 
