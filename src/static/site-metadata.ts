@@ -16,6 +16,10 @@ const data: ISiteMetadataResult = {
   description: 'Running Page',
   navLinks: [
     {
+      name: 'Summary',
+      url: '/summary',
+    },
+    {
       name: 'Blog',
       url: 'https://xmchx.vercel.app',
     },
