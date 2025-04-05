@@ -7,7 +7,7 @@ import { ACTIVITY_TOTAL, ACTIVITY_TYPES } from "@/utils/const";
 
 // Define interfaces for our data structures
 interface Activity {
-    start_date_local: string;
+    start_date: string;
     distance: number;
     moving_time: string;
     type: string;
@@ -155,7 +155,7 @@ const ActivityList: React.FC = () => {
 
     const groupActivities = (interval: IntervalType): ActivityGroups => {
         return (activities as Activity[]).filter(filterActivities).reduce((acc: ActivityGroups, activity) => {
-            const date = new Date(activity.start_date_local);
+            const date = new Date(activity.start_date);
             let key: string;
             let index: number;
             switch (interval) {
@@ -168,15 +168,13 @@ const ActivityList: React.FC = () => {
                     index = date.getDate() - 1; // Return current day (0-30)
                     break;
                 case 'week':
-                    const currentDate = new Date(date.valueOf());
-                    currentDate.setDate(currentDate.getDate() + 4 - (currentDate.getDay() || 7)); // Set to nearest Thursday (ISO weeks defined by Thursday)
-                    const yearStart = new Date(currentDate.getFullYear(), 0, 1);
-                    const weekNum = Math.ceil((((currentDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-                    key = `${currentDate.getFullYear()}-W${weekNum.toString().padStart(2, '0')}`;
-                    index = (date.getDay() + 6) % 7; // Return current day (0-6, Monday-Sunday)
+                    const startOfYear = new Date(date.getFullYear(), 0, 1);
+                    const weekNumber = Math.ceil(((date.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+                    key = `${date.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`; // Zero padding
+                    index = date.getDay(); // Return the day of the week (0-6)
                     break;
                 case 'day':
-                    key = date.toLocaleDateString("zh").replaceAll('/', '-'); // Format date as YYYY-MM-DD
+                    key = date.toISOString().split('T')[0];
                     index = 0; // Return 0
                     break;
                 default:
