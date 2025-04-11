@@ -15,10 +15,10 @@ const data: ISiteMetadataResult = {
   logo: 'https://avatars.githubusercontent.com/u/39235427?v=4',
   description: 'Running Page',
   navLinks: [
-    // {
-    //   name: 'Summary',
-    //   url: '/summary',
-    // },
+    {
+      name: 'Summary',
+      url: '/summary',
+    },
     {
       name: 'Blog',
       url: 'https://xmchx.vercel.app',
