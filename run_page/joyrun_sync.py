@@ -381,6 +381,22 @@ class Joyrun:
             # fix #66
             if heart_rate < 0:
                 heart_rate = None
+        elevation_gain = None
+        # pass the track no points
+        if run_points_data:
+            gpx_data = self.parse_points_to_gpx(
+                run_points_data,
+                start_time,
+                end_time,
+                heart_rate_list,
+                altitude_list,
+                pause_list,
+            )
+            elevation_gain = gpx_data.get_uphill_downhill().uphill
+            if with_gpx:
+                # pass the track no points
+                if str(joyrun_id) not in old_gpx_ids:
+                    download_joyrun_gpx(gpx_data.to_xml(), str(joyrun_id))
 
         polyline_str = polyline.encode(run_points_data) if run_points_data else ""
         start_latlng = start_point(*run_points_data[0]) if run_points_data else None
