@@ -25,27 +25,13 @@ on:
       - requirements.txt
 
 env:
-
-
   # please change to your own config.
 
-
-
   RUN_TYPE: garmin_cn # support strava/nike/garmin/garmin_cn/keep/only_gpx/nike_to_strava/strava_to_garmin/strava_to_garmin_cn/garmin_to_strava/garmin_to_strava_cn/codoon, Please change the 'pass' it to your own
-
-
-
 
   ATHLETE: DuckTyping
   TITLE: DuckTyping Running
   MIN_GRID_DISTANCE: 10 # change min distance here
-
-
-
-
-
-
-
 
   TITLE_GRID: Over 10km Runs # also here
 
@@ -55,10 +41,8 @@ env:
 
   IGNORE_POLYLINE: 'ktjrFoemeU~IorGq}DeB'
 
-
   IGNORE_RANGE: 10 # Unit meter
   SAVE_DATA_IN_GITHUB_CACHE: false # if you deploy in the vercel, check the README
-
 
   DATA_CACHE_PREFIX: 'track_data'
   BUILD_GH_PAGES: true # If you do not need GitHub Page please set it to `false`
@@ -292,28 +276,3 @@ jobs:
       data_cache_prefix: ${{needs.sync.outputs.DATA_CACHE_PREFIX}}
     needs:
       - sync
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
