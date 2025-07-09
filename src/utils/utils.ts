@@ -57,9 +57,8 @@ const titleForShow = (run: Activity): string => {
   if (run.name) {
     name = run.name;
   }
-  return `${name} ${date} ${distance} KM ${
-    !run.summary_polyline ? '(No map data for this run)' : ''
-  }`;
+  return `${name} ${date} ${distance} KM ${!run.summary_polyline ? '(No map data for this run)' : ''
+    }`;
 };
 
 const formatPace = (d: number): string => {
@@ -311,7 +310,7 @@ const getActivitySport = (act: Activity): string => {
 const titleForRun = (run: Activity): string => {
   if (RICH_TITLE) {
     // 1. try to use user defined name
-    if (run.name != '') {
+    if (run.name != '' && run.name != 'Run from keep') {
       return run.name;
     }
     // 2. try to use location+type if the location is available, eg. 'Shanghai Run'
