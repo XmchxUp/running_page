@@ -24,8 +24,8 @@ dependencies:
     specifier: ^0.1.11
     version: 0.1.11(react@18.2.0)
   "@vitejs/plugin-react":
-    specifier: ^4.6.0
-    version: 4.6.0(vite@5.4.19)
+    specifier: ^5.0.0
+    version: 5.0.0(vite@7.1.2)
   gcoord:
     specifier: ^0.3.2
     version: 0.3.2
@@ -60,14 +60,14 @@ dependencies:
     specifier: ^2.15.2
     version: 2.15.2(react-dom@18.2.0)(react@18.2.0)
   vite:
-    specifier: ^5.4.19
-    version: 5.4.19(@types/node@20.5.7)
+    specifier: ^7.1.2
+    version: 7.1.2(@types/node@24.2.1)
   vite-plugin-svgr:
     specifier: ^4.3.0
-    version: 4.3.0(typescript@5.2.2)(vite@5.4.19)
+    version: 4.3.0(typescript@5.2.2)(vite@7.1.2)
   vite-tsconfig-paths:
-    specifier: ^4.2.0
-    version: 4.2.0(typescript@5.2.2)(vite@5.4.19)
+    specifier: ^5.1.4
+    version: 5.1.4(typescript@5.2.2)(vite@7.1.2)
 
 devDependencies:
   "@eslint/eslintrc":
@@ -77,8 +77,8 @@ devDependencies:
     specifier: ^9.32.0
     version: 9.32.0
   "@tailwindcss/vite":
-    specifier: ^4.1.10
-    version: 4.1.10(vite@5.4.19)
+    specifier: ^4.1.11
+    version: 4.1.11(vite@7.1.2)
   "@types/geojson":
     specifier: ^7946.0.14
     version: 7946.0.14
@@ -86,17 +86,17 @@ devDependencies:
     specifier: ^1.0.2
     version: 1.0.2
   "@types/node":
-    specifier: ^20.5.7
-    version: 20.5.7
+    specifier: ^24.2.1
+    version: 24.2.1
   "@types/prop-types":
     specifier: ^15.7.15
     version: 15.7.15
   "@types/react":
-    specifier: ^18.2.21
-    version: 18.2.21
+    specifier: ^19.1.10
+    version: 19.1.10
   "@types/react-dom":
-    specifier: ^18.2.7
-    version: 18.2.7
+    specifier: ^19.1.7
+    version: 19.1.7(@types/react@19.1.10)
   "@typescript-eslint/eslint-plugin":
     specifier: ^8.37.0
     version: 8.37.0(@typescript-eslint/parser@8.37.0)(eslint@9.31.0)(typescript@5.2.2)
@@ -343,11 +343,11 @@ packages:
     peerDependencies:
       "@babel/core": ^7.0.0-0
     dependencies:
-      "@babel/core": 7.27.4
+      "@babel/core": 7.28.0
       "@babel/helper-plugin-utils": 7.27.1
     dev: false
 
-  /@babel/plugin-transform-react-jsx-source@7.27.1(@babel/core@7.27.4):
+  /@babel/plugin-transform-react-jsx-source@7.27.1(@babel/core@7.28.0):
     resolution:
       {
         integrity: sha512-zbwoTsBruTeKB9hSq73ha66iFeJHuaFkUbwvqElnygoNbj/jHRsSeokowZFN3CZ64IvEqcmmkVe89OPXc7ldAw==,
@@ -356,7 +356,7 @@ packages:
     peerDependencies:
       "@babel/core": ^7.0.0-0
     dependencies:
-      "@babel/core": 7.27.4
+      "@babel/core": 7.28.0
       "@babel/helper-plugin-utils": 7.27.1
     dev: false
 
@@ -1145,7 +1145,6 @@ packages:
       }
     cpu: [arm]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     optional: true
 
@@ -1156,7 +1155,6 @@ packages:
       }
     cpu: [arm]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     optional: true
 
@@ -1167,7 +1165,6 @@ packages:
       }
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     optional: true
 
@@ -1178,7 +1175,6 @@ packages:
       }
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     optional: true
 
@@ -1189,7 +1185,6 @@ packages:
       }
     cpu: [loong64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     optional: true
 
@@ -1200,7 +1195,6 @@ packages:
       }
     cpu: [ppc64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     optional: true
 
@@ -1211,7 +1205,6 @@ packages:
       }
     cpu: [riscv64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     optional: true
 
@@ -1222,7 +1215,6 @@ packages:
       }
     cpu: [riscv64]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     optional: true
 
@@ -1233,7 +1225,6 @@ packages:
       }
     cpu: [s390x]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     optional: true
 
@@ -1244,7 +1235,6 @@ packages:
       }
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     optional: true
 
@@ -1255,7 +1245,6 @@ packages:
       }
     cpu: [x64]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     optional: true
 
@@ -1480,12 +1469,12 @@ packages:
       }
     dependencies:
       "@ampproject/remapping": 2.3.0
-      enhanced-resolve: 5.18.1
-      jiti: 2.4.2
+      enhanced-resolve: 5.18.3
+      jiti: 2.5.1
       lightningcss: 1.30.1
       magic-string: 0.30.17
       source-map-js: 1.2.1
-      tailwindcss: 4.1.10
+      tailwindcss: 4.1.11
     dev: true
 
   /@tailwindcss/oxide-android-arm64@4.1.10:
@@ -1556,7 +1545,6 @@ packages:
     engines: { node: ">= 10" }
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     dev: true
     optional: true
@@ -1569,7 +1557,6 @@ packages:
     engines: { node: ">= 10" }
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     dev: true
     optional: true
@@ -1582,7 +1569,6 @@ packages:
     engines: { node: ">= 10" }
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     dev: true
     optional: true
@@ -1595,7 +1581,6 @@ packages:
     engines: { node: ">= 10" }
     cpu: [x64]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     dev: true
     optional: true
@@ -1653,18 +1638,18 @@ packages:
       detect-libc: 2.0.4
       tar: 7.4.3
     optionalDependencies:
-      "@tailwindcss/oxide-android-arm64": 4.1.10
-      "@tailwindcss/oxide-darwin-arm64": 4.1.10
-      "@tailwindcss/oxide-darwin-x64": 4.1.10
-      "@tailwindcss/oxide-freebsd-x64": 4.1.10
-      "@tailwindcss/oxide-linux-arm-gnueabihf": 4.1.10
-      "@tailwindcss/oxide-linux-arm64-gnu": 4.1.10
-      "@tailwindcss/oxide-linux-arm64-musl": 4.1.10
-      "@tailwindcss/oxide-linux-x64-gnu": 4.1.10
-      "@tailwindcss/oxide-linux-x64-musl": 4.1.10
-      "@tailwindcss/oxide-wasm32-wasi": 4.1.10
-      "@tailwindcss/oxide-win32-arm64-msvc": 4.1.10
-      "@tailwindcss/oxide-win32-x64-msvc": 4.1.10
+      "@tailwindcss/oxide-android-arm64": 4.1.11
+      "@tailwindcss/oxide-darwin-arm64": 4.1.11
+      "@tailwindcss/oxide-darwin-x64": 4.1.11
+      "@tailwindcss/oxide-freebsd-x64": 4.1.11
+      "@tailwindcss/oxide-linux-arm-gnueabihf": 4.1.11
+      "@tailwindcss/oxide-linux-arm64-gnu": 4.1.11
+      "@tailwindcss/oxide-linux-arm64-musl": 4.1.11
+      "@tailwindcss/oxide-linux-x64-gnu": 4.1.11
+      "@tailwindcss/oxide-linux-x64-musl": 4.1.11
+      "@tailwindcss/oxide-wasm32-wasi": 4.1.11
+      "@tailwindcss/oxide-win32-arm64-msvc": 4.1.11
+      "@tailwindcss/oxide-win32-x64-msvc": 4.1.11
     dev: true
 
   /@tailwindcss/vite@4.1.10(vite@5.4.19):
@@ -1673,12 +1658,12 @@ packages:
         integrity: sha512-QWnD5HDY2IADv+vYR82lOhqOlS1jSCUUAmfem52cXAhRTKxpDh3ARX8TTXJTCCO7Rv7cD2Nlekabv02bwP3a2A==,
       }
     peerDependencies:
-      vite: ^5.2.0 || ^6
+      vite: ^5.2.0 || ^6 || ^7
     dependencies:
-      "@tailwindcss/node": 4.1.10
-      "@tailwindcss/oxide": 4.1.10
-      tailwindcss: 4.1.10
-      vite: 5.4.19(@types/node@20.5.7)
+      "@tailwindcss/node": 4.1.11
+      "@tailwindcss/oxide": 4.1.11
+      tailwindcss: 4.1.11
+      vite: 7.1.2(@types/node@24.2.1)
     dev: true
 
   /@trysound/sax@0.2.0:
@@ -1695,11 +1680,11 @@ packages:
         integrity: sha512-qoQprZvz5wQFJwMDqeseRXWv3rqMvhgpbXFfVyWhbx9X47POIA6i/+dXefEmZKoAgOaTdaIgNSMqMIU61yRyzA==,
       }
     dependencies:
-      "@babel/parser": 7.27.5
-      "@babel/types": 7.27.6
+      "@babel/parser": 7.28.0
+      "@babel/types": 7.28.2
       "@types/babel__generator": 7.27.0
       "@types/babel__template": 7.4.4
-      "@types/babel__traverse": 7.20.7
+      "@types/babel__traverse": 7.28.0
     dev: false
 
   /@types/babel__generator@7.27.0:
@@ -1708,7 +1693,7 @@ packages:
         integrity: sha512-ufFd2Xi92OAVPYsy+P4n7/U7e68fex0+Ee8gSG9KX7eo084CWiQ4sdxktvdl0bOPupXtVJPY19zk6EwWqUQ8lg==,
       }
     dependencies:
-      "@babel/types": 7.27.6
+      "@babel/types": 7.28.2
     dev: false
 
   /@types/babel__template@7.4.4:
@@ -1717,8 +1702,8 @@ packages:
         integrity: sha512-h/NUaSyG5EyxBIp8YRxo4RMe2/qQgvyowRwVMzhYhBCONbW8PUsg4lkFMrhgZhUe5z3L3MiLDuvyJ/CaPa2A8A==,
       }
     dependencies:
-      "@babel/parser": 7.27.5
-      "@babel/types": 7.27.6
+      "@babel/parser": 7.28.0
+      "@babel/types": 7.28.2
     dev: false
 
   /@types/babel__traverse@7.20.7:
@@ -1727,7 +1712,7 @@ packages:
         integrity: sha512-dkO5fhS7+/oos4ciWxyEyjWe48zmG6wbCheo/G2ZnHx4fs3EU6YC6UM8rk56gAjNJ9P3MTH2jo5jb92/K6wbng==,
       }
     dependencies:
-      "@babel/types": 7.27.6
+      "@babel/types": 7.28.2
     dev: false
 
   /@types/d3-array@3.2.1:
@@ -1869,7 +1854,7 @@ packages:
         integrity: sha512-GRaAEriuT4zp9N4p1i8BDBYmEyfo+xQ3yHjJU4eiK5NDa1RmUZG+unZABUTK4/Ox/M+GaHwb6Ow8rUITrtjszA==,
       }
     dependencies:
-      "@types/react": 18.2.21
+      "@types/react": 19.1.10
     dev: true
 
   /@types/react@18.2.21:
@@ -1878,6 +1863,7 @@ packages:
         integrity: sha512-neFKG/sBAwGxHgXiIxnbm3/AAVQ/cMRS93hvBpg8xYRbeQSPVABp9U2bRnPf0iI4+Ucdv3plSxKK+3CW2ENJxA==,
       }
     dependencies:
+      csstype: 3.1.3
       "@types/prop-types": 15.7.15
       "@types/scheduler": 0.16.3
       csstype: 3.1.2
@@ -2080,15 +2066,15 @@ packages:
       }
     engines: { node: ^14.18.0 || >=16.0.0 }
     peerDependencies:
-      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0-beta.0
+      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
     dependencies:
-      "@babel/core": 7.27.4
-      "@babel/plugin-transform-react-jsx-self": 7.27.1(@babel/core@7.27.4)
-      "@babel/plugin-transform-react-jsx-source": 7.27.1(@babel/core@7.27.4)
-      "@rolldown/pluginutils": 1.0.0-beta.19
+      "@babel/core": 7.28.0
+      "@babel/plugin-transform-react-jsx-self": 7.27.1(@babel/core@7.28.0)
+      "@babel/plugin-transform-react-jsx-source": 7.27.1(@babel/core@7.28.0)
+      "@rolldown/pluginutils": 1.0.0-beta.30
       "@types/babel__core": 7.20.5
       react-refresh: 0.17.0
-      vite: 5.4.19(@types/node@20.5.7)
+      vite: 7.1.2(@types/node@24.2.1)
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -2908,7 +2894,7 @@ packages:
       }
     dependencies:
       "@babel/runtime": 7.22.11
-      csstype: 3.1.2
+      csstype: 3.1.3
     dev: false
 
   /dom-serializer@2.0.0:
@@ -4532,7 +4518,6 @@ packages:
     engines: { node: ">= 12.0.0" }
     cpu: [arm64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     dev: true
     optional: true
@@ -4545,7 +4530,6 @@ packages:
     engines: { node: ">= 12.0.0" }
     cpu: [arm64]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     dev: true
     optional: true
@@ -4558,7 +4542,6 @@ packages:
     engines: { node: ">= 12.0.0" }
     cpu: [x64]
     os: [linux]
-    libc: [glibc]
     requiresBuild: true
     dev: true
     optional: true
@@ -4571,7 +4554,6 @@ packages:
     engines: { node: ">= 12.0.0" }
     cpu: [x64]
     os: [linux]
-    libc: [musl]
     requiresBuild: true
     dev: true
     optional: true
@@ -4695,7 +4677,7 @@ packages:
         integrity: sha512-sNPKHvyjVf7gyjwS4xGTaW/mCnF8wnjtifKBEhxfZ7E/S8tQ0rssrwGNn6q8JH/ohItJfSQp9mBtQYuTlH5QnA==,
       }
     dependencies:
-      "@jridgewell/sourcemap-codec": 1.5.0
+      "@jridgewell/sourcemap-codec": 1.5.5
     dev: true
 
   /map-obj@1.0.1:
@@ -5673,26 +5655,26 @@ packages:
     dependencies:
       "@types/estree": 1.0.8
     optionalDependencies:
-      "@rollup/rollup-android-arm-eabi": 4.44.0
-      "@rollup/rollup-android-arm64": 4.44.0
-      "@rollup/rollup-darwin-arm64": 4.44.0
-      "@rollup/rollup-darwin-x64": 4.44.0
-      "@rollup/rollup-freebsd-arm64": 4.44.0
-      "@rollup/rollup-freebsd-x64": 4.44.0
-      "@rollup/rollup-linux-arm-gnueabihf": 4.44.0
-      "@rollup/rollup-linux-arm-musleabihf": 4.44.0
-      "@rollup/rollup-linux-arm64-gnu": 4.44.0
-      "@rollup/rollup-linux-arm64-musl": 4.44.0
-      "@rollup/rollup-linux-loongarch64-gnu": 4.44.0
-      "@rollup/rollup-linux-powerpc64le-gnu": 4.44.0
-      "@rollup/rollup-linux-riscv64-gnu": 4.44.0
-      "@rollup/rollup-linux-riscv64-musl": 4.44.0
-      "@rollup/rollup-linux-s390x-gnu": 4.44.0
-      "@rollup/rollup-linux-x64-gnu": 4.44.0
-      "@rollup/rollup-linux-x64-musl": 4.44.0
-      "@rollup/rollup-win32-arm64-msvc": 4.44.0
-      "@rollup/rollup-win32-ia32-msvc": 4.44.0
-      "@rollup/rollup-win32-x64-msvc": 4.44.0
+      "@rollup/rollup-android-arm-eabi": 4.46.2
+      "@rollup/rollup-android-arm64": 4.46.2
+      "@rollup/rollup-darwin-arm64": 4.46.2
+      "@rollup/rollup-darwin-x64": 4.46.2
+      "@rollup/rollup-freebsd-arm64": 4.46.2
+      "@rollup/rollup-freebsd-x64": 4.46.2
+      "@rollup/rollup-linux-arm-gnueabihf": 4.46.2
+      "@rollup/rollup-linux-arm-musleabihf": 4.46.2
+      "@rollup/rollup-linux-arm64-gnu": 4.46.2
+      "@rollup/rollup-linux-arm64-musl": 4.46.2
+      "@rollup/rollup-linux-loongarch64-gnu": 4.46.2
+      "@rollup/rollup-linux-ppc64-gnu": 4.46.2
+      "@rollup/rollup-linux-riscv64-gnu": 4.46.2
+      "@rollup/rollup-linux-riscv64-musl": 4.46.2
+      "@rollup/rollup-linux-s390x-gnu": 4.46.2
+      "@rollup/rollup-linux-x64-gnu": 4.46.2
+      "@rollup/rollup-linux-x64-musl": 4.46.2
+      "@rollup/rollup-win32-arm64-msvc": 4.46.2
+      "@rollup/rollup-win32-ia32-msvc": 4.46.2
+      "@rollup/rollup-win32-x64-msvc": 4.46.2
       fsevents: 2.3.3
 
   /run-parallel@1.2.0:
@@ -6265,7 +6247,7 @@ packages:
     engines: { node: ^14.13.1 || ^16 || >=18 }
     hasBin: true
     peerDependencies:
-      typescript: ^4.3.5 || ^5.0.0
+      typescript: ^5.0.0
     peerDependenciesMeta:
       typescript:
         optional: true
@@ -6476,7 +6458,7 @@ packages:
       d3-timer: 3.0.1
     dev: false
 
-  /vite-plugin-svgr@4.3.0(typescript@5.2.2)(vite@5.4.19):
+  /vite-plugin-svgr@4.3.0(typescript@5.2.2)(vite@7.1.2):
     resolution:
       {
         integrity: sha512-Jy9qLB2/PyWklpYy0xk0UU3TlU0t2UMpJXZvf+hWII1lAmRHrOUKi11Uw8N3rxoNk7atZNYO3pR3vI1f7oi+6w==,
@@ -6487,7 +6469,7 @@ packages:
       "@rollup/pluginutils": 5.2.0
       "@svgr/core": 8.1.0(typescript@5.2.2)
       "@svgr/plugin-jsx": 8.1.0(@svgr/core@8.1.0)
-      vite: 5.4.19(@types/node@20.5.7)
+      vite: 7.1.2(@types/node@24.2.1)
     transitivePeerDependencies:
       - rollup
       - supports-color
@@ -6505,10 +6487,10 @@ packages:
       vite:
         optional: true
     dependencies:
-      debug: 4.3.4
+      debug: 4.4.1
       globrex: 0.1.2
-      tsconfck: 2.1.2(typescript@5.2.2)
-      vite: 5.4.19(@types/node@20.5.7)
+      tsconfck: 3.1.6(typescript@5.2.2)
+      vite: 7.1.2(@types/node@24.2.1)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -6533,6 +6515,8 @@ packages:
     peerDependenciesMeta:
       "@types/node":
         optional: true
+      jiti:
+        optional: true
       less:
         optional: true
       lightningcss:
@@ -6547,11 +6531,18 @@ packages:
         optional: true
       terser:
         optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
     dependencies:
-      "@types/node": 20.5.7
-      esbuild: 0.21.5
+      "@types/node": 24.2.1
+      esbuild: 0.25.9
+      fdir: 6.4.6(picomatch@4.0.3)
+      picomatch: 4.0.3
       postcss: 8.5.6
-      rollup: 4.44.0
+      rollup: 4.46.2
+      tinyglobby: 0.2.14
     optionalDependencies:
       fsevents: 2.3.3
 
