@@ -25,12 +25,11 @@ import {
   titleForShow,
   RunIds,
 } from '@/utils/utils';
-import { useTheme, useThemeChangeCounter } from '@/hooks/useTheme';
+import { useTheme } from '@/hooks/useTheme';
 
 const Index = () => {
   const { siteTitle, siteUrl } = useSiteMetadata();
   const { activities, thisYear } = useActivities();
-  const themeChangeCounter = useThemeChangeCounter(); // Add theme change listener
   const [year, setYear] = useState(thisYear);
   const [runIndex, setRunIndex] = useState(-1);
   const [title, setTitle] = useState('');
