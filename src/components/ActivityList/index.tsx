@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import activities from '@/static/activities.json';
 import styles from './style.module.css';
 import { ACTIVITY_TOTAL, LOADING_TEXT } from '@/utils/const';
-import { totalStat } from '@assets/index';
+import { totalStat, yearSummaryStats } from '@assets/index';
 import { loadSvgComponent } from '@/utils/svgUtils';
 import { SHOW_ELEVATION_GAIN, HOME_PAGE_TITLE } from '@/utils/const';
 import RoutePreview from '@/components/RoutePreview';
@@ -54,6 +54,20 @@ const CyclingSvg = MonthOfLifeSvg('cycling');
 const SwimmingSvg = MonthOfLifeSvg('swimming');
 const SkiingSvg = MonthOfLifeSvg('skiing');
 const AllSvg = MonthOfLifeSvg('all');
+
+// Cache for year summary lazy components to prevent flickering
+const yearSummaryCache: Record<
+  string,
+  React.LazyExoticComponent<React.FC<React.SVGProps<SVGSVGElement>>>
+> = {};
+const getYearSummarySvg = (year: string) => {
+  if (!yearSummaryCache[year]) {
+    yearSummaryCache[year] = lazy(() =>
+      loadSvgComponent(yearSummaryStats, `./year_summary_${year}.svg`)
+    );
+  }
+  return yearSummaryCache[year];
+};
 
 interface ActivitySummary {
   totalDistance: number;
@@ -315,6 +329,63 @@ const ActivityList: React.FC = () => {
   const [interval, setInterval] = useState<IntervalType>('month');
   const [sportType, setSportType] = useState<string>('all');
   const [sportTypeOptions, setSportTypeOptions] = useState<string[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+
+  // Get available years from activities
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    activities.forEach((activity) => {
+      const year = new Date(activity.start_date_local).getFullYear().toString();
+      years.add(year);
+    });
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, []);
+
+  // Keyboard navigation for year selection in Life view
+  useEffect(() => {
+    if (interval !== 'life') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle arrow keys
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+      // Prevent default scrolling behavior
+      e.preventDefault();
+
+      // Remove focus from current element to avoid visual confusion
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
+      const currentIndex = selectedYear
+        ? availableYears.indexOf(selectedYear)
+        : -1;
+
+      if (e.key === 'ArrowLeft') {
+        // Move to newer year (left in UI, lower index since sorted descending)
+        if (currentIndex === -1) {
+          // No year selected, select the last (oldest) year
+          setSelectedYear(availableYears[availableYears.length - 1]);
+        } else if (currentIndex > 0) {
+          setSelectedYear(availableYears[currentIndex - 1]);
+        } else if (currentIndex === 0) {
+          // At the most recent year, deselect to show Life view
+          setSelectedYear(null);
+        }
+      } else if (e.key === 'ArrowRight') {
+        // Move to older year (right in UI, higher index since sorted descending)
+        if (currentIndex === -1) {
+          // No year selected, select the first (most recent) year
+          setSelectedYear(availableYears[0]);
+        } else if (currentIndex < availableYears.length - 1) {
+          setSelectedYear(availableYears[currentIndex + 1]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [interval, selectedYear, availableYears]);
 
   useEffect(() => {
     const sportTypeSet = new Set(activities.map((activity) => activity.type));
@@ -656,14 +727,41 @@ const ActivityList: React.FC = () => {
 
       {interval === 'life' && (
         <div className={styles.lifeContainer}>
+          {/* Year selector buttons */}
+          <div className={styles.yearSelector}>
+            {availableYears.map((year) => (
+              <button
+                key={year}
+                className={`${styles.yearButton} ${selectedYear === year ? styles.yearButtonActive : ''}`}
+                onClick={() =>
+                  setSelectedYear(selectedYear === year ? null : year)
+                }
+              >
+                {year}
+              </button>
+            ))}
+          </div>
           <Suspense fallback={<div>Loading SVG...</div>}>
-            {(sportType === 'running' || sportType === 'Run') && <RunningSvg />}
-            {sportType === 'walking' && <WalkingSvg />}
-            {sportType === 'hiking' && <HikingSvg />}
-            {sportType === 'cycling' && <CyclingSvg />}
-            {sportType === 'swimming' && <SwimmingSvg />}
-            {sportType === 'skiing' && <SkiingSvg />}
-            {sportType === 'all' && <AllSvg />}
+            {selectedYear ? (
+              // Show Year Summary SVG when a year is selected
+              (() => {
+                const YearSvg = getYearSummarySvg(selectedYear);
+                return <YearSvg className={styles.yearSummarySvg} />;
+              })()
+            ) : (
+              // Show Life SVG when no year is selected
+              <>
+                {(sportType === 'running' || sportType === 'Run') && (
+                  <RunningSvg />
+                )}
+                {sportType === 'walking' && <WalkingSvg />}
+                {sportType === 'hiking' && <HikingSvg />}
+                {sportType === 'cycling' && <CyclingSvg />}
+                {sportType === 'swimming' && <SwimmingSvg />}
+                {sportType === 'skiing' && <SkiingSvg />}
+                {sportType === 'all' && <AllSvg />}
+              </>
+            )}
           </Suspense>
         </div>
       )}
