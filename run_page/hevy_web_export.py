@@ -200,7 +200,7 @@ def export_hevy_csv(
             return False
 
 
-def run_sync(csv_path: str, output_path: str) -> bool:
+def run_sync(csv_path: str, output_path: str, tz_offset: int = 0) -> bool:
     """Parse the downloaded CSV into workouts.json via workout_sync.py."""
     script = os.path.join(os.path.dirname(__file__), "workout_sync.py")
     cmd = [
@@ -210,6 +210,8 @@ def run_sync(csv_path: str, output_path: str) -> bool:
         csv_path,
         "--output",
         output_path,
+        "--tz-offset",
+        str(tz_offset),
     ]
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd)
@@ -242,6 +244,13 @@ def main():
         action="store_true",
         help="Show the browser window (useful for debugging)",
     )
+    parser.add_argument(
+        "--tz-offset",
+        type=int,
+        default=0,
+        metavar="HOURS",
+        help="Hours to add to parsed timestamps (e.g. 8 for UTC→UTC+8, default: 0)",
+    )
     args = parser.parse_args()
 
     # Determine CSV path
@@ -263,7 +272,7 @@ def main():
             raise SystemExit(1)
 
         if not args.csv_only:
-            ok = run_sync(csv_path, args.output)
+            ok = run_sync(csv_path, args.output, tz_offset=args.tz_offset)
             if not ok:
                 raise SystemExit(1)
     finally:

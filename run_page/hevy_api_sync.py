@@ -15,7 +15,7 @@ import hashlib
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 try:
@@ -94,23 +94,23 @@ def _make_session_id(hevy_id: str) -> str:
     return hashlib.md5(hevy_id.encode()).hexdigest()[:12]
 
 
-def _normalize_time(iso_str: str) -> str:
-    """Normalize various ISO 8601 variants to 'YYYY-MM-DDTHH:MM:SS'."""
+def _normalize_time(iso_str: str, tz_offset: int = 0) -> str:
+    """Normalize various ISO 8601 variants to 'YYYY-MM-DDTHH:MM:SS' with optional offset."""
     try:
-        # Handle timezone-aware strings
         dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
-        # Convert to UTC naive
         if dt.tzinfo:
             dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        if tz_offset:
+            dt += timedelta(hours=tz_offset)
         return dt.strftime("%Y-%m-%dT%H:%M:%S")
     except (ValueError, AttributeError):
         return iso_str[:19]  # fallback: just truncate
 
 
-def convert_workout(raw: dict) -> dict:
+def convert_workout(raw: dict, tz_offset: int = 0) -> dict:
     """Convert a single Hevy API workout object to our WorkoutSession format."""
-    start_iso = _normalize_time(raw.get("start_time", ""))
-    end_iso = _normalize_time(raw.get("end_time", ""))
+    start_iso = _normalize_time(raw.get("start_time", ""), tz_offset)
+    end_iso = _normalize_time(raw.get("end_time", ""), tz_offset)
 
     # Duration
     duration_seconds = 0
@@ -209,6 +209,13 @@ def main():
         action="store_true",
         help="Only fetch workouts newer than the most recent in the output file",
     )
+    parser.add_argument(
+        "--tz-offset",
+        type=int,
+        default=8,
+        metavar="HOURS",
+        help="Hours to add to UTC timestamps (default: 8 for UTC+8)",
+    )
     args = parser.parse_args()
 
     client = HevyClient(args.api_key)
@@ -227,7 +234,7 @@ def main():
             print(f"Incremental mode: fetching workouts after {since}")
 
     raw_workouts = client.get_all_workouts(since=since)
-    new_sessions = [convert_workout(w) for w in raw_workouts]
+    new_sessions = [convert_workout(w, tz_offset=args.tz_offset) for w in raw_workouts]
 
     if args.incremental and existing:
         final = merge_workouts(existing, new_sessions)

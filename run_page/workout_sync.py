@@ -17,7 +17,7 @@ import hashlib
 import json
 import os
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 
@@ -73,6 +73,9 @@ class HevyParser(BaseWorkoutParser):
         distance_km, duration_seconds, rpe
     """
 
+    def __init__(self, tz_offset: int = 0):
+        self.tz_offset = tz_offset
+
     DATE_FORMATS = [
         "%d %b %Y, %H:%M",   # "9 Mar 2026, 20:12"
         "%Y-%m-%d %H:%M:%S",  # ISO fallback
@@ -90,6 +93,8 @@ class HevyParser(BaseWorkoutParser):
     def _to_iso(self, value: str) -> str:
         dt = self._parse_datetime(value)
         if dt:
+            if self.tz_offset:
+                dt += timedelta(hours=self.tz_offset)
             return dt.strftime("%Y-%m-%dT%H:%M:%S")
         return value
 
@@ -333,6 +338,13 @@ def main():
         default=None,
         help="Workout app format (auto-detected if omitted)",
     )
+    parser.add_argument(
+        "--tz-offset",
+        type=int,
+        default=0,
+        metavar="HOURS",
+        help="Hours to add to parsed timestamps (e.g. 8 for UTC→UTC+8, default: 0)",
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.input):
@@ -343,7 +355,7 @@ def main():
     print(f"Detected/using format: {source}")
 
     parser_cls = PARSERS[source]
-    workout_parser = parser_cls()
+    workout_parser = parser_cls(tz_offset=args.tz_offset) if source == "hevy" else parser_cls()
     sessions = workout_parser.parse(args.input)
     print(f"Parsed {len(sessions)} workout sessions")
 

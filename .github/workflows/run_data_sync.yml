@@ -237,7 +237,7 @@ jobs:
             echo "HEVY_EMAIL or HEVY_PASSWORD not set → skipping Hevy web export"
             exit 0
           fi
-          python run_page/hevy_web_export.py "${{ secrets.HEVY_EMAIL }}" "${{ secrets.HEVY_PASSWORD }}"
+          python run_page/hevy_web_export.py "${{ secrets.HEVY_EMAIL }}" "${{ secrets.HEVY_PASSWORD }}" --tz-offset 8
 
       - name: Sync Hevy workouts (official API — premium)
         run: |
