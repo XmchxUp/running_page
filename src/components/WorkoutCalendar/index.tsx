@@ -18,7 +18,13 @@ const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const toLocalDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+const TODAY = toLocalDate(new Date());
 
 const levelClass = (count: number, max: number): string => {
   if (count === 0) return styles.empty;
@@ -55,7 +61,7 @@ const WorkoutCalendar = ({ workouts, year, onDayClick }: WorkoutCalendarProps) =
     const cur = new Date(startDate);
 
     while (cur <= endDate) {
-      const dateStr = cur.toISOString().slice(0, 10);
+      const dateStr = toLocalDate(cur);
       cells.push({ date: dateStr, count: dateMap[dateStr] || 0, weekIndex, dayIndex });
       dayIndex++;
       if (dayIndex === 7) { dayIndex = 0; weekIndex++; }

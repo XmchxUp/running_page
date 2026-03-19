@@ -32,8 +32,14 @@ const calcStreak = (workouts: WorkoutSession[]): { current: number; longest: num
   }
 
   // Current streak: check if today or yesterday is in the set
-  const today = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  const toLocalDate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const today = toLocalDate(new Date());
+  const yesterday = toLocalDate(new Date(Date.now() - 86400000));
   const dateSet = new Set(dates);
   let current = 0;
   if (dateSet.has(today) || dateSet.has(yesterday)) {
