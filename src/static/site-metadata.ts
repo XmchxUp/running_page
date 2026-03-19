@@ -25,10 +25,6 @@ const data: ISiteMetadataResult = {
       url: `${getBasePath()}/summary`,
     },
     {
-      name: 'Workouts',
-      url: `${getBasePath()}/workouts`,
-    },
-    {
       name: 'Blog',
       url: 'https://xmchx.vercel.app/',
     },
