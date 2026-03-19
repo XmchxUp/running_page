@@ -82,8 +82,11 @@ jobs:
       # Install playwright only when Hevy web export is needed
       # ---------------------------------------------------------------------------
       - name: Install Playwright (for Hevy export)
-        if: ${{ secrets.HEVY_EMAIL != '' }}
         run: |
+          if [ -z "${{ secrets.HEVY_EMAIL }}" ] || [ -z "${{ secrets.HEVY_PASSWORD }}" ]; then
+            echo "HEVY_EMAIL or HEVY_PASSWORD not set → skipping Hevy web export"
+            exit 0
+          fi
           pip install playwright
           playwright install chromium --with-deps
 
@@ -229,13 +232,19 @@ jobs:
       # Settings → Secrets → Actions → New repository secret
       # ---------------------------------------------------------------------------
       - name: Sync Hevy workouts (web export — free tier)
-        if: ${{ secrets.HEVY_EMAIL != '' && secrets.HEVY_PASSWORD != '' }}
         run: |
+          if [ -z "${{ secrets.HEVY_EMAIL }}" ] || [ -z "${{ secrets.HEVY_PASSWORD }}" ]; then
+            echo "HEVY_EMAIL or HEVY_PASSWORD not set → skipping Hevy web export"
+            exit 0
+          fi
           python run_page/hevy_web_export.py "${{ secrets.HEVY_EMAIL }}" "${{ secrets.HEVY_PASSWORD }}"
 
       - name: Sync Hevy workouts (official API — premium)
-        if: ${{ secrets.HEVY_API_KEY != '' }}
         run: |
+          if [ -z "${{ secrets.HEVY_API_KEY }}" ]; then
+            echo "HEVY_API_KEY not set → skipping Hevy API sync"
+            exit 0
+          fi
           python run_page/hevy_api_sync.py ${{ secrets.HEVY_API_KEY }} --incremental
 
       - name: Make svg GitHub profile
