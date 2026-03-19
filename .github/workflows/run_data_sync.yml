@@ -78,6 +78,15 @@ jobs:
         run: |
           pip install -r requirements.txt
 
+      # ---------------------------------------------------------------------------
+      # Install playwright only when Hevy web export is needed
+      # ---------------------------------------------------------------------------
+      - name: Install Playwright (for Hevy export)
+        if: ${{ secrets.HEVY_EMAIL != '' }}
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+
       - name: Cache Data Files
         if: env.SAVE_DATA_IN_GITHUB_CACHE == 'true'
         uses: actions/cache@v4
@@ -207,6 +216,27 @@ jobs:
         if: env.RUN_TYPE == 'db_updater'
         run: |
           python run_page/db_updater.py
+
+      # ---------------------------------------------------------------------------
+      # Hevy workout sync — two methods, use whichever applies:
+      #
+      #   Method A (free tier): set HEVY_EMAIL + HEVY_PASSWORD secrets
+      #     → browser automation exports CSV from hevy.com/settings
+      #
+      #   Method B (premium API): set HEVY_API_KEY secret
+      #     → official REST API, incremental sync
+      #
+      # Settings → Secrets → Actions → New repository secret
+      # ---------------------------------------------------------------------------
+      - name: Sync Hevy workouts (web export — free tier)
+        if: ${{ secrets.HEVY_EMAIL != '' && secrets.HEVY_PASSWORD != '' }}
+        run: |
+          python run_page/hevy_web_export.py "${{ secrets.HEVY_EMAIL }}" "${{ secrets.HEVY_PASSWORD }}"
+
+      - name: Sync Hevy workouts (official API — premium)
+        if: ${{ secrets.HEVY_API_KEY != '' }}
+        run: |
+          python run_page/hevy_api_sync.py ${{ secrets.HEVY_API_KEY }} --incremental
 
       - name: Make svg GitHub profile
         if: env.RUN_TYPE != 'pass'
