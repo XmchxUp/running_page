@@ -68,7 +68,83 @@
   }
 }
 
+/* Workout calendar colors — system default (dark) */
+:root {
+  --wc-empty:  rgba(255, 255, 255, 0.07);
+  --wc-l1:     #14532d;
+  --wc-l2:     #166534;
+  --wc-l3:     #15803d;
+  --wc-l4:     #22c55e;
+  --wc-today:  rgba(255, 255, 255, 0.25);
+  --wc-hover:  rgba(255, 255, 255, 0.15);
+
+  /* Workout table colors */
+  --wt-border:    rgba(255, 255, 255, 0.08);
+  --wt-hover:     rgba(255, 255, 255, 0.04);
+  --wt-chip-bg:   rgba(255, 255, 255, 0.08);
+  --wt-detail-bg: rgba(0, 0, 0, 0.2);
+  --wt-icon:      rgba(255, 255, 255, 0.3);
+  --wt-pr-color:  rgb(251, 191, 36);
+  --wt-pr-bg:     rgba(251, 191, 36, 0.18);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --wc-empty:  rgba(0, 0, 0, 0.08);
+    --wc-l1:     #bbf7d0;
+    --wc-l2:     #4ade80;
+    --wc-l3:     #16a34a;
+    --wc-l4:     #14532d;
+    --wc-today:  rgba(0, 0, 0, 0.18);
+    --wc-hover:  rgba(0, 0, 0, 0.12);
+
+    --wt-border:    rgba(0, 0, 0, 0.08);
+    --wt-hover:     rgba(0, 0, 0, 0.04);
+    --wt-chip-bg:   rgba(0, 0, 0, 0.07);
+    --wt-detail-bg: rgba(0, 0, 0, 0.04);
+    --wt-icon:      rgba(0, 0, 0, 0.3);
+    --wt-pr-color:  #b45309;
+    --wt-pr-bg:     rgba(180, 83, 9, 0.12);
+  }
+}
+
 /* 2. Manual Override (Higher Priority) */
+[data-theme='light'] {
+  --wc-empty:  rgba(0, 0, 0, 0.08);
+  --wc-l1:     #bbf7d0;
+  --wc-l2:     #4ade80;
+  --wc-l3:     #16a34a;
+  --wc-l4:     #14532d;
+  --wc-today:  rgba(0, 0, 0, 0.18);
+  --wc-hover:  rgba(0, 0, 0, 0.12);
+
+  --wt-border:    rgba(0, 0, 0, 0.08);
+  --wt-hover:     rgba(0, 0, 0, 0.04);
+  --wt-chip-bg:   rgba(0, 0, 0, 0.07);
+  --wt-detail-bg: rgba(0, 0, 0, 0.04);
+  --wt-icon:      rgba(0, 0, 0, 0.3);
+  --wt-pr-color:  #b45309;
+  --wt-pr-bg:     rgba(180, 83, 9, 0.12);
+}
+
+[data-theme='dark'] {
+  --wc-empty:  rgba(255, 255, 255, 0.07);
+  --wc-l1:     #14532d;
+  --wc-l2:     #166534;
+  --wc-l3:     #15803d;
+  --wc-l4:     #22c55e;
+  --wc-today:  rgba(255, 255, 255, 0.25);
+  --wc-hover:  rgba(255, 255, 255, 0.15);
+
+  --wt-border:    rgba(255, 255, 255, 0.08);
+  --wt-hover:     rgba(255, 255, 255, 0.04);
+  --wt-chip-bg:   rgba(255, 255, 255, 0.08);
+  --wt-detail-bg: rgba(0, 0, 0, 0.2);
+  --wt-icon:      rgba(255, 255, 255, 0.3);
+  --wt-pr-color:  rgb(251, 191, 36);
+  --wt-pr-bg:     rgba(251, 191, 36, 0.18);
+}
+
 [data-theme='light'] {
   --color-brand: var(--color-sky-900);
   --color-secondary: var(--color-sky-800);
