@@ -11,11 +11,28 @@ export const TOOLTIP_STYLE: React.CSSProperties = {
   padding: '6px 10px',
 };
 
-// Section divider with label
-export const SectionHeader = ({ label }: { label: string }) => (
-  <div className="flex items-center gap-3 mt-10 mb-5">
+// Section divider with label — optionally collapsible
+export const SectionHeader = ({
+  label,
+  collapsed,
+  onToggle,
+}: {
+  label: string;
+  collapsed?: boolean;
+  onToggle?: () => void;
+}) => (
+  <div
+    className="flex items-center gap-3 mt-10 mb-5"
+    style={onToggle ? { cursor: 'pointer', userSelect: 'none' } : undefined}
+    onClick={onToggle}
+  >
     <span className="text-xs font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--wc-l3)' }}>{label}</span>
     <div className="flex-1 h-px" style={{ background: 'var(--wo-section-line)' }} />
+    {onToggle !== undefined && (
+      <span style={{ fontSize: 11, opacity: 0.4, color: 'var(--wc-l3)', transition: 'transform 0.2s', display: 'inline-block', transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}>
+        ▾
+      </span>
+    )}
   </div>
 );
 

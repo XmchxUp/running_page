@@ -1174,6 +1174,12 @@ const WorkoutsPage = () => {
     setSelectedExercise((prev) => prev === name ? null : name);
   }, []);
 
+  // Section collapse state — default all expanded
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const toggleSection = useCallback((key: string) => {
+    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
   return (
     <Layout>
       <Helmet><html lang="en" data-theme={theme} /><title>Workouts</title></Helmet>
@@ -1236,30 +1242,36 @@ const WorkoutsPage = () => {
         )}
 
         {/* ── SECTION: 训练记录 ─────────────────────────────────────────── */}
-        <SectionHeader label={IS_CHINESE ? '训练记录' : 'Training Log'} />
-        <div className="flex flex-col lg:flex-row gap-5">
+        <SectionHeader label={IS_CHINESE ? '训练记录' : 'Training Log'} collapsed={collapsed['log']} onToggle={() => toggleSection('log')} />
+        {!collapsed['log'] && (
+          <div className="flex flex-col lg:flex-row gap-5">
 
-          {/* Left sidebar */}
-          <div className="w-full lg:w-64 xl:w-72 shrink-0 space-y-4">
-            <NextSessionGuide workouts={filteredWorkouts} />
-            <Card><MilestoneCards workouts={filteredWorkouts} /></Card>
-            <Card><StagnationPanel workouts={filteredWorkouts} /></Card>
-            <Card><RecoveryRhythm workouts={workouts} /></Card>
-          </div>
+            {/* Left sidebar */}
+            <div className="w-full lg:w-64 xl:w-72 shrink-0 space-y-4">
+              <NextSessionGuide workouts={filteredWorkouts} />
+              <Card><MilestoneCards workouts={filteredWorkouts} /></Card>
+              <Card><StagnationPanel workouts={filteredWorkouts} /></Card>
+              <Card><RecoveryRhythm workouts={workouts} /></Card>
+            </div>
 
-          {/* Right: workout table — dominant element */}
-          <div className="flex-1 min-w-0">
-            <WorkoutTable
-              workouts={filteredWorkouts}
-              highlightDate={highlightDate}
-              scoreMap={scoreMap}
-              doubleSessionDates={doubleSessionDates}
-            />
+            {/* Right: workout table — dominant element */}
+            <div className="flex-1 min-w-0">
+              <WorkoutTable
+                workouts={filteredWorkouts}
+                highlightDate={highlightDate}
+                scoreMap={scoreMap}
+                doubleSessionDates={doubleSessionDates}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── SECTION: 名人堂 · HK Neon Billboard ─────────────────────── */}
-        <div className="flex items-center gap-3 mt-12 mb-6">
+        <div
+          className="flex items-center gap-3 mt-12 mb-6"
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+          onClick={() => toggleSection('hof')}
+        >
           <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,45,120,0.4), transparent)' }} />
           <div style={{ textAlign: 'center', lineHeight: 1 }}>
             <div style={{
@@ -1273,124 +1285,133 @@ const WorkoutsPage = () => {
             }}>名人堂</div>
           </div>
           <div className="h-px flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,245,255,0.3), transparent)' }} />
+          <span style={{ fontSize: 11, opacity: 0.4, color: '#ffcc00', display: 'inline-block', transition: 'transform 0.2s', transform: collapsed['hof'] ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▾</span>
         </div>
 
-        <NeonPRWall workouts={filteredWorkouts} />
+        {!collapsed['hof'] && <NeonPRWall workouts={filteredWorkouts} />}
 
         {/* ── SECTION: 训练分析 ─────────────────────────────────────────── */}
-        <SectionHeader label={IS_CHINESE ? '训练分析' : 'Analytics'} />
+        <SectionHeader label={IS_CHINESE ? '训练分析' : 'Analytics'} collapsed={collapsed['analytics']} onToggle={() => toggleSection('analytics')} />
 
-        <div className="mb-4">
-          <Card><TrainingHeartbeat workouts={filteredWorkouts} /></Card>
-        </div>
+        {!collapsed['analytics'] && (<>
+          <div className="mb-4">
+            <Card><TrainingHeartbeat workouts={filteredWorkouts} /></Card>
+          </div>
 
-        <div className="columns-1 md:columns-2 lg:columns-3" style={{ columnGap: 16 }}>
-          {[
-            <Card key="vol"><VolumeAndSetsChart workouts={filteredWorkouts} /></Card>,
-            <Card key="ses"><SessionTrendsChart workouts={filteredWorkouts} /></Card>,
-            <Card key="time"><TimeDistributionCharts workouts={filteredWorkouts} /></Card>,
-            <Card key="freq"><MonthlyFrequencyChart workouts={filteredWorkouts} /></Card>,
-            <Card key="rep"><RepRangePanel workouts={filteredWorkouts} /></Card>,
-            <Card key="type"><WorkoutTypeChart workouts={filteredWorkouts} /></Card>,
-            <Card key="top"><TopSessionsPanel workouts={filteredWorkouts} scoreMap={scoreMap} /></Card>,
-          ].map((card) => (
-            <div key={card.key} className="break-inside-avoid mb-4">{card}</div>
-          ))}
-        </div>
+          <div className="columns-1 md:columns-2 lg:columns-3" style={{ columnGap: 16 }}>
+            {[
+              <Card key="vol"><VolumeAndSetsChart workouts={filteredWorkouts} /></Card>,
+              <Card key="ses"><SessionTrendsChart workouts={filteredWorkouts} /></Card>,
+              <Card key="time"><TimeDistributionCharts workouts={filteredWorkouts} /></Card>,
+              <Card key="freq"><MonthlyFrequencyChart workouts={filteredWorkouts} /></Card>,
+              <Card key="rep"><RepRangePanel workouts={filteredWorkouts} /></Card>,
+              <Card key="type"><WorkoutTypeChart workouts={filteredWorkouts} /></Card>,
+              <Card key="top"><TopSessionsPanel workouts={filteredWorkouts} scoreMap={scoreMap} /></Card>,
+            ].map((card) => (
+              <div key={card.key} className="break-inside-avoid mb-4">{card}</div>
+            ))}
+          </div>
+        </>)}
 
         {/* ── SECTION: 力量分析 ─────────────────────────────────────────── */}
-        <SectionHeader label={IS_CHINESE ? '力量分析' : 'Strength'} />
+        <SectionHeader label={IS_CHINESE ? '力量分析' : 'Strength'} collapsed={collapsed['strength']} onToggle={() => toggleSection('strength')} />
 
-        <div className="columns-1 lg:columns-2" style={{ columnGap: 20 }}>
+        {!collapsed['strength'] && (
+          <div className="columns-1 lg:columns-2" style={{ columnGap: 20 }}>
 
-          <div className="break-inside-avoid mb-5">
-            <Card>
-              <BestLiftsPanel workouts={filteredWorkouts} selectedExercise={selectedExercise} onSelectExercise={handleSelectExercise} />
-            </Card>
-          </div>
-
-          <div className="break-inside-avoid mb-5">
-            <Card>
-              <MuscleBodyMap workouts={filteredWorkouts} />
-              <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--wo-section-line)' }}>
-                <MuscleVolumeChart workouts={filteredWorkouts} />
-              </div>
-            </Card>
-          </div>
-
-          {stats.topExercises.length > 0 && (
             <div className="break-inside-avoid mb-5">
               <Card>
-                <PanelLabel>{IS_CHINESE ? '常练动作 (点击看进步)' : 'Top Exercises'}</PanelLabel>
-                <div className="space-y-0.5">
-                  {stats.topExercises.map(([name, sets]) => (
-                    <div key={name}
-                      className="flex items-center gap-2 text-xs cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-all"
-                      style={selectedExercise === name ? { background: 'rgba(99,102,241,0.12)' } : {}}
-                      onClick={() => handleSelectExercise(name)}
-                    >
-                      <span className="flex-1 opacity-75 truncate">{translateExercise(name)}</span>
-                      <span className="opacity-35 whitespace-nowrap">{sets} sets</span>
-                      <span className="opacity-20 text-xs">{selectedExercise === name ? '▾' : '›'}</span>
-                    </div>
-                  ))}
+                <BestLiftsPanel workouts={filteredWorkouts} selectedExercise={selectedExercise} onSelectExercise={handleSelectExercise} />
+              </Card>
+            </div>
+
+            <div className="break-inside-avoid mb-5">
+              <Card>
+                <MuscleBodyMap workouts={filteredWorkouts} />
+                <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--wo-section-line)' }}>
+                  <MuscleVolumeChart workouts={filteredWorkouts} />
                 </div>
               </Card>
             </div>
-          )}
 
-          {selectedExercise && (
+            {stats.topExercises.length > 0 && (
+              <div className="break-inside-avoid mb-5">
+                <Card>
+                  <PanelLabel>{IS_CHINESE ? '常练动作 (点击看进步)' : 'Top Exercises'}</PanelLabel>
+                  <div className="space-y-0.5">
+                    {stats.topExercises.map(([name, sets]) => (
+                      <div key={name}
+                        className="flex items-center gap-2 text-xs cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-all"
+                        style={selectedExercise === name ? { background: 'rgba(99,102,241,0.12)' } : {}}
+                        onClick={() => handleSelectExercise(name)}
+                      >
+                        <span className="flex-1 opacity-75 truncate">{translateExercise(name)}</span>
+                        <span className="opacity-35 whitespace-nowrap">{sets} sets</span>
+                        <span className="opacity-20 text-xs">{selectedExercise === name ? '▾' : '›'}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {selectedExercise && (
+              <div className="break-inside-avoid mb-5">
+                <ExerciseProgress name={selectedExercise} workouts={workouts} onClose={() => setSelectedExercise(null)} />
+              </div>
+            )}
+
             <div className="break-inside-avoid mb-5">
-              <ExerciseProgress name={selectedExercise} workouts={workouts} onClose={() => setSelectedExercise(null)} />
+              <Card><MuscleHexPanel workouts={filteredWorkouts} /></Card>
             </div>
-          )}
 
-          <div className="break-inside-avoid mb-5">
-            <Card><MuscleHexPanel workouts={filteredWorkouts} /></Card>
+            <div className="break-inside-avoid mb-5">
+              <Card><PRTimeline workouts={workouts} /></Card>
+            </div>
+
+            <div className="break-inside-avoid mb-5">
+              <Card><ProgressiveOverloadPanel workouts={filteredWorkouts} /></Card>
+            </div>
+
+            <div className="break-inside-avoid mb-5">
+              <Card><MuscleDistributionPanel workouts={filteredWorkouts} /></Card>
+            </div>
+
           </div>
-
-          <div className="break-inside-avoid mb-5">
-            <Card><PRTimeline workouts={workouts} /></Card>
-          </div>
-
-          <div className="break-inside-avoid mb-5">
-            <Card><ProgressiveOverloadPanel workouts={filteredWorkouts} /></Card>
-          </div>
-
-          <div className="break-inside-avoid mb-5">
-            <Card><MuscleDistributionPanel workouts={filteredWorkouts} /></Card>
-          </div>
-
-        </div>
+        )}
 
         {/* ── SECTION: 恢复状态 ─────────────────────────────────────────── */}
-        <SectionHeader label={IS_CHINESE ? '恢复状态' : 'Recovery'} />
-        <div className="columns-1 md:columns-2" style={{ columnGap: 16 }}>
-          <div className="break-inside-avoid mb-4">
-            <Card><MuscleRecovery workouts={filteredWorkouts} /></Card>
+        <SectionHeader label={IS_CHINESE ? '恢复状态' : 'Recovery'} collapsed={collapsed['recovery']} onToggle={() => toggleSection('recovery')} />
+        {!collapsed['recovery'] && (
+          <div className="columns-1 md:columns-2" style={{ columnGap: 16 }}>
+            <div className="break-inside-avoid mb-4">
+              <Card><MuscleRecovery workouts={filteredWorkouts} /></Card>
+            </div>
+            <div className="break-inside-avoid mb-4">
+              <Card><E1RMCompare workouts={filteredWorkouts} /></Card>
+            </div>
           </div>
-          <div className="break-inside-avoid mb-4">
-            <Card><E1RMCompare workouts={filteredWorkouts} /></Card>
-          </div>
-        </div>
+        )}
 
         {/* ── SECTION: 训练负荷 ─────────────────────────────────────────── */}
-        <SectionHeader label={IS_CHINESE ? '训练负荷' : 'Training Load'} />
-        <div className="mb-4">
-          <Card><TrainingLoad workouts={filteredWorkouts} /></Card>
-        </div>
-        <div className="columns-1 md:columns-2" style={{ columnGap: 16 }}>
-          <div className="break-inside-avoid mb-4">
-            <Card><ComparisonPanel workouts={filteredWorkouts} /></Card>
+        <SectionHeader label={IS_CHINESE ? '训练负荷' : 'Training Load'} collapsed={collapsed['load']} onToggle={() => toggleSection('load')} />
+        {!collapsed['load'] && (<>
+          <div className="mb-4">
+            <Card><TrainingLoad workouts={filteredWorkouts} /></Card>
           </div>
-          <div className="break-inside-avoid mb-4">
-            <Card><HighlightReel workouts={workouts} /></Card>
+          <div className="columns-1 md:columns-2" style={{ columnGap: 16 }}>
+            <div className="break-inside-avoid mb-4">
+              <Card><ComparisonPanel workouts={filteredWorkouts} /></Card>
+            </div>
+            <div className="break-inside-avoid mb-4">
+              <Card><HighlightReel workouts={workouts} /></Card>
+            </div>
           </div>
-        </div>
+        </>)}
 
         {/* ── SECTION: 成就殿堂 ─────────────────────────────────────────── */}
-        <SectionHeader label={IS_CHINESE ? '成就殿堂' : 'Achievements'} />
-        <AchievementsPanel workouts={workouts} />
+        <SectionHeader label={IS_CHINESE ? '成就殿堂' : 'Achievements'} collapsed={collapsed['achievements']} onToggle={() => toggleSection('achievements')} />
+        {!collapsed['achievements'] && <AchievementsPanel workouts={workouts} />}
 
       </div>
     </Layout>

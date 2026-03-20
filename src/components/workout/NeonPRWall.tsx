@@ -46,11 +46,12 @@ const NeonPRWall = ({ workouts }: { workouts: WorkoutSession[] }) => {
   };
 
   return (
-    <div style={{
+    <div className="px-4 sm:px-6" style={{
       background: '#04000c',
       border: '1px solid #ff2d78',
       borderRadius: 14,
-      padding: '22px 24px 18px',
+      paddingTop: 22,
+      paddingBottom: 18,
       position: 'relative',
       overflow: 'hidden',
       animation: 'borderChase 5s linear infinite',
@@ -76,16 +77,17 @@ const NeonPRWall = ({ workouts }: { workouts: WorkoutSession[] }) => {
       {/* ── Header ── */}
       <div style={{ textAlign: 'center', marginBottom: 16, position: 'relative', zIndex: 2 }}>
         <div style={{
-          fontSize: 13, letterSpacing: '0.45em', fontWeight: 800,
+          fontSize: 12, letterSpacing: '0.3em', fontWeight: 800,
           color: '#ff2d78', opacity: 0.85, marginBottom: 6,
           animation: 'neonFlicker 8s infinite',
+          wordBreak: 'break-word',
         }}>
           ✦ HALL OF FAME · 名人堂 ✦
         </div>
 
         {/* Main title — gold neon, pulsing glow */}
         <div style={{
-          fontSize: 28, fontWeight: 900, letterSpacing: '0.06em', fontStyle: 'italic',
+          fontSize: 'clamp(18px, 5vw, 28px)', fontWeight: 900, letterSpacing: '0.06em', fontStyle: 'italic',
           color: '#ffcc00',
           textShadow: '0 0 8px #ffcc00, 0 0 20px #ffcc00, 0 0 40px rgba(255,204,0,0.5)',
           lineHeight: 1.1,
@@ -96,10 +98,11 @@ const NeonPRWall = ({ workouts }: { workouts: WorkoutSession[] }) => {
 
         {/* Subtitle */}
         <div style={{
-          fontSize: 12, letterSpacing: '0.45em', marginTop: 5,
+          fontSize: 11, letterSpacing: '0.25em', marginTop: 5,
           color: '#00f5ff', opacity: 0.55, fontWeight: 700,
           textShadow: '0 0 8px #00f5ff',
           animation: 'neonFlicker 12s infinite 2s',
+          wordBreak: 'break-word',
         }}>
           PERSONAL RECORDS · ALL TIME BEST
         </div>
@@ -115,8 +118,8 @@ const NeonPRWall = ({ workouts }: { workouts: WorkoutSession[] }) => {
         animation: 'neonSweep 4s linear infinite',
       }} />
 
-      {/* ── Two-column PR grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 28px', position: 'relative', zIndex: 2 }}>
+      {/* ── Two-column PR grid (single column on mobile) ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: '0 28px', position: 'relative', zIndex: 2 }}>
         <div>
           {leftCol.map((item, i) => (
             <Row key={item.name} {...item} i={i} />
