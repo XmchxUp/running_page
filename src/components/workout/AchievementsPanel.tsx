@@ -509,6 +509,8 @@ const AchievementsPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
     [workouts, meta]);
   const unlockedCount = items.filter((i) => i.unlocked).length;
   const [selected, setSelected] = useState<typeof items[0] | null>(null);
+  const [showAll, setShowAll] = useState(false);
+  const visibleItems = showAll ? items : items.filter((i) => i.unlocked);
 
   return (
     <div>
@@ -516,7 +518,17 @@ const AchievementsPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
         <div className="text-xs font-semibold uppercase tracking-[0.1em] opacity-40">
           {IS_CHINESE ? `成就 · ${unlockedCount} / ${items.length}` : `Achievements · ${unlockedCount} / ${items.length}`}
         </div>
-        <span className="text-xs opacity-25 tabular-nums">{Math.round((unlockedCount / items.length) * 100)}%</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs opacity-25 tabular-nums">{Math.round((unlockedCount / items.length) * 100)}%</span>
+          <button onClick={() => setShowAll((v) => !v)} style={{
+            fontSize: 11, opacity: 0.45, background: 'none', border: 'none',
+            cursor: 'pointer', color: 'inherit', padding: '2px 4px',
+          }}>
+            {showAll
+              ? (IS_CHINESE ? '只看已解锁 ▲' : 'Unlocked only ▲')
+              : (IS_CHINESE ? `显示全部 ${items.length} 个 ▼` : `Show all ${items.length} ▼`)}
+          </button>
+        </div>
       </div>
 
       {/* Overall progress bar */}
@@ -530,7 +542,7 @@ const AchievementsPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
 
       {/* Badge grid */}
       <div className="grid gap-2.5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))' }}>
-        {items.map(({ id, icon, title, desc, color, rarity, unlocked, progress }, idx) => {
+        {visibleItems.map(({ id, icon, title, desc, color, rarity, unlocked, progress }, idx) => {
           const prog = progress?.(workouts, meta);
           const progPct = prog ? Math.round((prog[0] / prog[1]) * 100) : null;
           return (

@@ -804,14 +804,27 @@ const ExerciseProgress = ({ name, workouts, onClose }: { name: string; workouts:
 };
 
 // PR timeline
+const PR_TIMELINE_INITIAL = 8;
 const PRTimeline = ({ workouts }: { workouts: WorkoutSession[] }) => {
   const events = useMemo(() => buildPRTimeline(workouts), [workouts]);
+  const [expanded, setExpanded] = useState(false);
   if (events.length === 0) return null;
+  const visible = expanded ? events : events.slice(0, PR_TIMELINE_INITIAL);
   return (
     <div>
-      <PanelLabel>{IS_CHINESE ? 'PR 成就时间线' : 'PR Timeline'}</PanelLabel>
+      <div className="flex items-center justify-between mb-2.5">
+        <PanelLabel style={{ marginBottom: 0 }}>{IS_CHINESE ? 'PR 成就时间线' : 'PR Timeline'}</PanelLabel>
+        {events.length > PR_TIMELINE_INITIAL && (
+          <button onClick={() => setExpanded((v) => !v)} style={{
+            fontSize: 11, opacity: 0.45, background: 'none', border: 'none',
+            cursor: 'pointer', color: 'inherit', padding: '2px 4px',
+          }}>
+            {expanded ? (IS_CHINESE ? '收起 ▲' : 'Collapse ▲') : `+${events.length - PR_TIMELINE_INITIAL} ▼`}
+          </button>
+        )}
+      </div>
       <div className="space-y-2.5">
-        {events.map((e, i) => {
+        {visible.map((e, i) => {
           const isFirst = e.prevE1rm === null;
           const pct = e.prevE1rm ? Math.round(((e.e1rm - e.prevE1rm) / e.prevE1rm) * 100) : null;
           return (
@@ -832,6 +845,17 @@ const PRTimeline = ({ workouts }: { workouts: WorkoutSession[] }) => {
           );
         })}
       </div>
+      {events.length > PR_TIMELINE_INITIAL && (
+        <button onClick={() => setExpanded((v) => !v)} style={{
+          marginTop: 10, width: '100%', fontSize: 11, opacity: 0.35,
+          background: 'none', border: 'none', cursor: 'pointer', color: 'inherit',
+          padding: '4px 0',
+        }}>
+          {expanded
+            ? (IS_CHINESE ? '收起 ▲' : 'Show less ▲')
+            : (IS_CHINESE ? `显示全部 ${events.length} 条 ▼` : `Show all ${events.length} ▼`)}
+        </button>
+      )}
     </div>
   );
 };
