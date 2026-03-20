@@ -1,11 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { WorkoutSession, WorkoutExercise } from '@/types/workout';
 import { formatDuration } from '@/hooks/useWorkouts';
+import { translateExercise } from '@/utils/exerciseTranslations';
 import styles from './style.module.css';
+
+// Exercises where lower weight = stronger (assisted resistance helps less = harder)
+const ASSISTED_PATTERN = /assisted/i;
+const isAssisted = (name: string): boolean => ASSISTED_PATTERN.test(name);
 
 interface WorkoutTableProps {
   workouts: WorkoutSession[];
   highlightDate?: string;
+  scoreMap?: Record<string, number>;
+  doubleSessionDates?: Set<string>;
 }
 
 // ---------------------------------------------------------------------------
@@ -23,7 +30,8 @@ const buildPRMap = (workouts: WorkoutSession[]): Record<string, { weight: number
         ex.sets.forEach((s) => {
           if (!['normal', 'dropset', 'failure'].includes(s.type)) return;
           const w_kg = s.weight_kg ?? 0;
-          if (w_kg > 0 && w_kg > (prMap[ex.name]?.weight ?? 0)) {
+          const assisted = isAssisted(ex.name);
+          if (w_kg > 0 && (assisted ? w_kg < (prMap[ex.name]?.weight ?? Infinity) : w_kg > (prMap[ex.name]?.weight ?? 0))) {
             prMap[ex.name] = { weight: w_kg, date: w.start_time.slice(0, 10) };
           }
         });
@@ -52,7 +60,7 @@ const ExerciseDetail = ({
   return (
     <div className={styles.exerciseDetail}>
       <span className={styles.exerciseName}>
-        {exercise.name}
+        {translateExercise(exercise.name)}
         {isPRSession && (
           <span className={styles.prBadge} title={`PR: ${prWeight}kg`}>
             ★ PR
@@ -96,16 +104,23 @@ const ExerciseDetail = ({
 // ---------------------------------------------------------------------------
 // WorkoutRow
 // ---------------------------------------------------------------------------
+const SCORE_COLOR = (s: number) =>
+  s >= 70 ? 'rgba(34,197,94,0.9)' : s >= 45 ? 'rgba(234,179,8,0.85)' : 'rgba(128,128,128,0.5)';
+
 const WorkoutRow = ({
   workout,
   isHighlighted,
   prMap,
   prSessions,
+  score,
+  isDoubleDay,
 }: {
   workout: WorkoutSession;
   isHighlighted: boolean;
   prMap: Record<string, { weight: number; date: string }>;
   prSessions: Set<string>;
+  score?: number;
+  isDoubleDay?: boolean;
 }) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -130,8 +145,15 @@ const WorkoutRow = ({
           <div className={styles.timeLabel}>{time}</div>
         </td>
         <td className={styles.titleCell}>
+          {isDoubleDay && <span title="Double session day" style={{ marginRight: 4 }}>⚡</span>}
           {workout.title}
           {hasPR && <span className={styles.rowPrBadge}>★</span>}
+          {score !== undefined && (
+            <span style={{
+              marginLeft: 6, fontSize: 10, fontWeight: 700,
+              color: SCORE_COLOR(score), opacity: 0.9,
+            }}>{score}</span>
+          )}
         </td>
         <td className={styles.metaCell}>{formatDuration(workout.duration_seconds)}</td>
         <td className={styles.metaCell}>{mainExercises.length} exercises</td>
@@ -172,8 +194,11 @@ const WorkoutRow = ({
 // ---------------------------------------------------------------------------
 // WorkoutTable
 // ---------------------------------------------------------------------------
-const WorkoutTable = ({ workouts, highlightDate }: WorkoutTableProps) => {
+const INITIAL_VISIBLE = 50;
+
+const WorkoutTable = ({ workouts, highlightDate, scoreMap, doubleSessionDates }: WorkoutTableProps) => {
   const [search, setSearch] = useState('');
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE);
 
   const filteredWorkouts = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -184,6 +209,14 @@ const WorkoutTable = ({ workouts, highlightDate }: WorkoutTableProps) => {
         w.exercises.some((ex) => ex.name.toLowerCase().includes(q))
     );
   }, [workouts, search]);
+
+  // Reset visible count when search changes
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE);
+  }, [search]);
+
+  // When search is active show all results, otherwise paginate
+  const visibleWorkouts = search.trim() ? filteredWorkouts : filteredWorkouts.slice(0, visibleCount);
 
   // Build PR map from the displayed workouts (chronological)
   const prMap = useMemo(() => buildPRMap(workouts), [workouts]);
@@ -216,11 +249,11 @@ const WorkoutTable = ({ workouts, highlightDate }: WorkoutTableProps) => {
           onChange={(e) => setSearch(e.target.value)}
           className={styles.searchInput}
         />
-        {search && (
-          <span className={styles.searchCount}>
-            {filteredWorkouts.length} / {workouts.length}
-          </span>
-        )}
+        <span className={styles.searchCount}>
+          {search
+            ? `${filteredWorkouts.length} / ${workouts.length}`
+            : `显示 ${visibleWorkouts.length} / ${workouts.length}`}
+        </span>
       </div>
       <table className={styles.workoutTable} cellSpacing="0" cellPadding="0">
         <thead>
@@ -235,17 +268,41 @@ const WorkoutTable = ({ workouts, highlightDate }: WorkoutTableProps) => {
           </tr>
         </thead>
         <tbody>
-          {filteredWorkouts.map((w) => (
+          {visibleWorkouts.map((w) => (
             <WorkoutRow
               key={w.id}
               workout={w}
               isHighlighted={!!highlightDate && w.start_time.startsWith(highlightDate)}
               prMap={prMap}
               prSessions={prSessions}
+              score={scoreMap?.[w.id]}
+              isDoubleDay={doubleSessionDates?.has(w.start_time.slice(0, 10))}
             />
           ))}
         </tbody>
       </table>
+      {!search.trim() && filteredWorkouts.length > visibleCount && (
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <button
+            onClick={() => setVisibleCount((c) => c + INITIAL_VISIBLE)}
+            style={{
+              background: 'var(--wo-card-bg, rgba(255,255,255,0.04))',
+              border: '1px solid rgba(128,128,128,0.2)',
+              borderRadius: 10,
+              padding: '8px 20px',
+              fontSize: 13,
+              cursor: 'pointer',
+              color: 'inherit',
+              opacity: 0.75,
+              transition: 'opacity 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.75'; }}
+          >
+            显示更多 ({filteredWorkouts.length - visibleCount} 条剩余)
+          </button>
+        </div>
+      )}
     </div>
   );
 };
