@@ -21,6 +21,10 @@ const data: ISiteMetadataResult = {
   description: 'Personal site and blog',
   navLinks: [
     {
+      name: 'Running Page',
+      url: `${getBasePath()}/`,
+    },
+    {
       name: 'Summary',
       url: `${getBasePath()}/summary`,
     },
@@ -31,10 +35,6 @@ const data: ISiteMetadataResult = {
     {
       name: 'Blog',
       url: 'https://xmchx.vercel.app/',
-    },
-    {
-      name: 'About',
-      url: 'https://xmchx.vercel.app/post/about',
     },
   ],
 };
