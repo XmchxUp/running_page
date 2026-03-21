@@ -10,8 +10,10 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceLine,
+  ReferenceArea,
 } from 'recharts';
 import { WorkoutSession } from '@/types/workout';
+import { loadPhases, PHASE_COLORS, PHASE_STROKE, type TrainingPhase } from './TrainingPhasePanel';
 
 const IS_CHINESE = true;
 
@@ -23,6 +25,8 @@ const TOOLTIP_STYLE: React.CSSProperties = {
 };
 
 const TrainingLoad = ({ workouts }: { workouts: WorkoutSession[] }) => {
+  const phases = useMemo(loadPhases, []);
+
   const data = useMemo(() => {
     // Build daily volume map
     const volMap: Record<string, number> = {};
@@ -89,6 +93,21 @@ const TrainingLoad = ({ workouts }: { workouts: WorkoutSession[] }) => {
       <ResponsiveContainer width="100%" height={180}>
         <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.08)" />
+          {phases.map((phase: TrainingPhase) => {
+            // Convert YYYY-MM-DD to the chart's MM/DD format
+            const fmtDate = (d: string) => d.slice(5).replace('-', '/');
+            return (
+              <ReferenceArea
+                key={phase.id}
+                x1={fmtDate(phase.start)} x2={fmtDate(phase.end)}
+                fill={PHASE_COLORS[phase.type]}
+                stroke={PHASE_STROKE[phase.type]}
+                strokeWidth={1}
+                strokeDasharray="4 2"
+                label={{ value: phase.label || (IS_CHINESE ? { strength:'力量',hypertrophy:'增肌',cut:'减脂',deload:'退量' }[phase.type] : phase.type), fontSize: 9, fill: PHASE_STROKE[phase.type], position: 'insideTop' }}
+              />
+            );
+          })}
           <XAxis
             dataKey="date"
             tick={{ fontSize: 9, opacity: 0.35 }}

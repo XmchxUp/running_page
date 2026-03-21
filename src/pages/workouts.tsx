@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
   BarChart, Bar, LineChart, Line, ComposedChart,
@@ -24,6 +24,10 @@ import {
   calcStagnation,
   calcProgressiveOverload,
   buildPRTimeline,
+  linearRegression,
+  calcExerciseCoMatrix,
+  calcWILKS,
+  getExerciseStem,
 } from '@/utils/workoutCalcs';
 import {
   IS_CHINESE,
@@ -42,6 +46,19 @@ import E1RMCompare from '@/components/workout/E1RMCompare';
 import TrainingLoad from '@/components/workout/TrainingLoad';
 import ComparisonPanel from '@/components/workout/ComparisonPanel';
 import HighlightReel from '@/components/workout/HighlightReel';
+import WILKSPanel from '@/components/workout/WILKSPanel';
+import VsMyselfPanel from '@/components/workout/VsMyselfPanel';
+import ExerciseCoMatrix from '@/components/workout/ExerciseCoMatrix';
+import SpiralCalendar from '@/components/WorkoutCalendar/SpiralCalendar';
+import TrainingPhasePanel from '@/components/workout/TrainingPhasePanel';
+import WorkoutWrapped from '@/components/workout/WorkoutWrapped';
+import ReadinessScore from '@/components/workout/ReadinessScore';
+import VolumeLandmarks from '@/components/workout/VolumeLandmarks';
+import StrengthStandards from '@/components/workout/StrengthStandards';
+import TrainingDNA from '@/components/workout/TrainingDNA';
+import SessionAdvisor from '@/components/workout/SessionAdvisor';
+import FatigueCurve from '@/components/workout/FatigueCurve';
+import ExpandableCard from '@/components/workout/ExpandableCard';
 
 // =============================================================================
 // CHART COMPONENTS
@@ -703,10 +720,9 @@ const NextSessionGuide = ({ workouts }: { workouts: WorkoutSession[] }) => {
   );
 };
 
-// Best lifts — clickable
-const BestLiftsPanel = ({
-  workouts, selectedExercise, onSelectExercise,
-}: { workouts: WorkoutSession[]; selectedExercise: string | null; onSelectExercise: (name: string) => void }) => {
+// Best lifts — clickable, with inline progress chart
+const BestLiftsPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
+  const [selected, setSelected] = useState<string | null>(null);
   const lifts = useMemo(() => calcBestLifts(workouts, 8), [workouts]);
   if (lifts.length === 0) return null;
   return (
@@ -716,17 +732,21 @@ const BestLiftsPanel = ({
       </PanelLabel>
       <div className="space-y-0.5">
         {lifts.map(({ name, weight, reps, e1rm, date }) => (
-          <div key={name}
-            className="flex items-center gap-2 text-sm cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-all"
-            style={selectedExercise === name
-              ? { background: 'rgba(99,102,241,0.12)', borderRadius: 8 }
-              : {}}
-            onClick={() => onSelectExercise(name)}
-          >
-            <span className="flex-1 opacity-75 truncate text-xs">{translateExercise(name)}</span>
-            <span className="text-xs opacity-35 tabular-nums whitespace-nowrap">{weight}×{reps}</span>
-            <span className="text-xs font-semibold tabular-nums whitespace-nowrap" style={{ color: 'var(--wt-pr-color)' }}>{e1rm} kg</span>
-            <span className="text-xs opacity-20 tabular-nums">{date.slice(5)}</span>
+          <div key={name}>
+            <div
+              className="flex items-center gap-2 text-sm cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-all"
+              style={selected === name ? { background: 'rgba(99,102,241,0.12)', borderRadius: 8 } : {}}
+              onClick={() => setSelected((prev) => (prev === name ? null : name))}
+            >
+              <span className="flex-1 opacity-75 truncate text-xs">{translateExercise(name)}</span>
+              <span className="text-xs opacity-35 tabular-nums whitespace-nowrap">{weight}×{reps}</span>
+              <span className="text-xs font-semibold tabular-nums whitespace-nowrap" style={{ color: 'var(--wt-pr-color)' }}>{e1rm} kg</span>
+              <span className="text-xs opacity-20 tabular-nums">{date.slice(5)}</span>
+              <span className="text-xs opacity-20">{selected === name ? '▾' : '›'}</span>
+            </div>
+            {selected === name && (
+              <ExerciseProgress name={name} workouts={workouts} onClose={() => setSelected(null)} />
+            )}
           </div>
         ))}
       </div>
@@ -735,7 +755,7 @@ const BestLiftsPanel = ({
   );
 };
 
-// Exercise progress chart — dual line (e1RM + session vol)
+// Exercise progress chart — dual line (e1RM + session vol) + prediction
 const ExerciseProgress = ({ name, workouts, onClose }: { name: string; workouts: WorkoutSession[]; onClose: () => void }) => {
   const data = useMemo(() => {
     const pts: Array<{ date: string; e1rm: number; weight: number; reps: number; sessionVol: number }> = [];
@@ -761,40 +781,90 @@ const ExerciseProgress = ({ name, workouts, onClose }: { name: string; workouts:
     return prs;
   }, [data]);
 
+  // PR prediction: linear regression on recent sessions, extend 12 weeks
+  const { chartData, predictionLabel } = useMemo(() => {
+    if (data.length < 3) return { chartData: data.map((d) => ({ ...d, predicted: undefined as number | undefined })), predictionLabel: null };
+    const recent = data.slice(-Math.min(data.length, 20));
+    const t0 = new Date(recent[0].date).getTime();
+    const pts = recent.map((d) => ({ x: (new Date(d).getTime() - t0) / 86400000, y: d.e1rm }));
+    const { slope, intercept } = linearRegression(pts);
+    if (slope <= 0) return { chartData: data.map((d) => ({ ...d, predicted: undefined as number | undefined })), predictionLabel: null };
+    // project 12 weeks out from last data point
+    const lastDate = new Date(data[data.length - 1].date);
+    const lastX = (lastDate.getTime() - t0) / 86400000;
+    const currentE1rm = data[data.length - 1].e1rm;
+    // find how many days to reach next 5kg milestone
+    const nextMilestone = Math.ceil(currentE1rm / 5) * 5;
+    const daysToMilestone = slope > 0 ? Math.round((nextMilestone - intercept - slope * lastX) / slope) : null;
+    const weeksToMilestone = daysToMilestone !== null ? Math.round(daysToMilestone / 7) : null;
+    // build prediction tail (12 weeks)
+    const predPoints: Array<{ date: string; e1rm: undefined; weight: undefined; reps: undefined; sessionVol: undefined; predicted: number }> = [];
+    for (let w = 1; w <= 12; w++) {
+      const futureDate = new Date(lastDate.getTime() + w * 7 * 86400000);
+      const futureX = (futureDate.getTime() - t0) / 86400000;
+      const predVal = Math.round((slope * futureX + intercept) * 10) / 10;
+      if (predVal > 0) predPoints.push({
+        date: futureDate.toISOString().slice(0, 10),
+        e1rm: undefined, weight: undefined, reps: undefined, sessionVol: undefined,
+        predicted: predVal,
+      });
+    }
+    const historicalWithPred = data.map((d, i) => ({
+      ...d,
+      predicted: i === data.length - 1 ? currentE1rm : undefined,
+    }));
+    const label = weeksToMilestone !== null && weeksToMilestone > 0 && weeksToMilestone < 52
+      ? (IS_CHINESE ? `预计 ${weeksToMilestone} 周后达 ${nextMilestone}kg` : `~${weeksToMilestone}w to ${nextMilestone}kg`)
+      : null;
+    return { chartData: [...historicalWithPred, ...predPoints], predictionLabel: label };
+  }, [data]);
+
   return (
     <Card className="mt-3">
       <div className="flex items-center justify-between mb-3">
-        <span className="font-semibold text-sm truncate" style={{ color: 'var(--wc-l4)' }}>{translateExercise(name)}</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-semibold text-sm truncate" style={{ color: 'var(--wc-l4)' }}>{translateExercise(name)}</span>
+          {predictionLabel && (
+            <span className="text-xs px-1.5 py-0.5 rounded shrink-0" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--wc-l3)' }}>
+              {predictionLabel}
+            </span>
+          )}
+        </div>
         <button onClick={onClose} className="ml-2 text-xs opacity-35 hover:opacity-70 shrink-0 transition-opacity">✕</button>
       </div>
       {data.length === 0 ? <div className="text-xs opacity-40">No weight data</div> : (
         <>
           <ResponsiveContainer width="100%" height={140}>
-            <LineChart data={data} margin={{ top: 4, right: 38, left: -28, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 4, right: 38, left: -28, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
               <XAxis dataKey="date" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} interval="preserveStartEnd" />
               <YAxis yAxisId="e" tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.35 }} unit="kg" />
               <YAxis yAxisId="v" orientation="right" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.25 }} />
               <Tooltip contentStyle={TOOLTIP_STYLE}
-                formatter={(v: number, name: string, props: any) => {
-                  if (name === 'e1rm') return [`e1RM ${v} kg (${props.payload.weight}×${props.payload.reps})`, IS_CHINESE ? '估算最大' : 'Est. 1RM'];
+                formatter={(v: number, key: string, props: any) => {
+                  if (key === 'e1rm') return [`e1RM ${v} kg (${props.payload.weight}×${props.payload.reps})`, IS_CHINESE ? '估算最大' : 'Est. 1RM'];
+                  if (key === 'predicted') return [`${v} kg`, IS_CHINESE ? '预测 e1RM' : 'Predicted e1RM'];
                   return [`${v.toLocaleString()} kg`, IS_CHINESE ? '单次出力' : 'Session Vol'];
                 }}
               />
-              <Line yAxisId="e" type="monotone" dataKey="e1rm" stroke="var(--wc-l3)" strokeWidth={2}
+              <Line yAxisId="e" type="monotone" dataKey="e1rm" stroke="var(--wc-l3)" strokeWidth={2} connectNulls={false}
                 dot={(props: any) => {
+                  if (props.payload.e1rm === undefined) return <g key={props.key} />;
                   const isPR = prDates.has(props.payload.date);
                   return <circle key={props.key} cx={props.cx} cy={props.cy} r={isPR ? 5 : 3}
                     fill={isPR ? 'var(--wt-pr-color)' : 'var(--wc-l3)'} stroke="none" />;
                 }}
               />
+              <Line yAxisId="e" type="monotone" dataKey="predicted" stroke="rgba(99,102,241,0.6)" strokeWidth={1.5}
+                strokeDasharray="6 3" dot={false} connectNulls={false} />
               <Line yAxisId="v" type="monotone" dataKey="sessionVol" stroke="var(--wc-l2)" strokeWidth={1.5} strokeDasharray="4 2"
-                dot={{ r: 2, fill: 'var(--wc-l2)', stroke: 'none' }} />
+                dot={{ r: 2, fill: 'var(--wc-l2)', stroke: 'none' }} connectNulls={false} />
             </LineChart>
           </ResponsiveContainer>
           <div className="mt-2 flex items-center gap-4 text-xs opacity-45 flex-wrap">
             <span><span style={{ color: 'var(--wt-pr-color)' }}>●</span> e1RM PR</span>
             <span><span style={{ color: 'var(--wc-l2)' }}>– –</span> {IS_CHINESE ? '单次出力' : 'Session Vol'}</span>
+            {predictionLabel && <span><span style={{ color: 'rgba(99,102,241,0.7)' }}>· ·</span> {IS_CHINESE ? '趋势预测' : 'Trend'}</span>}
             <span>{data.length} sessions</span>
           </div>
         </>
@@ -1067,6 +1137,95 @@ const MuscleBodyMap = ({ workouts }: { workouts: WorkoutSession[] }) => {
 };
 
 // =============================================================================
+// TIME HEATMAP CHART — hour × weekday matrix
+// =============================================================================
+const TIME_HEATMAP_HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6am – 11pm
+const TIME_HEATMAP_DAYS = IS_CHINESE
+  ? ['一', '二', '三', '四', '五', '六', '日']
+  : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const TimeHeatmapChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
+  const { grid, maxVal } = useMemo(() => {
+    // grid[dayIndex][hourIndex] = { count, totalVol }
+    const grid: Array<Array<{ count: number; totalVol: number }>> = Array.from({ length: 7 }, () =>
+      Array.from({ length: 18 }, () => ({ count: 0, totalVol: 0 }))
+    );
+    workouts.forEach((w) => {
+      const d = new Date(w.start_time);
+      const dow = (d.getDay() + 6) % 7; // 0=Mon … 6=Sun
+      const hour = d.getHours();
+      const hi = hour - 6;
+      if (hi >= 0 && hi < 18) {
+        grid[dow][hi].count++;
+        grid[dow][hi].totalVol += w.total_volume_kg;
+      }
+    });
+    let maxVal = 0;
+    grid.forEach((row) => row.forEach((cell) => { if (cell.count > maxVal) maxVal = cell.count; }));
+    return { grid, maxVal };
+  }, [workouts]);
+
+  if (workouts.length === 0) return null;
+
+  const getColor = (count: number) => {
+    if (count === 0) return 'var(--wc-empty)';
+    const ratio = count / maxVal;
+    if (ratio < 0.25) return 'var(--wc-l1)';
+    if (ratio < 0.55) return 'var(--wc-l2)';
+    if (ratio < 0.80) return 'var(--wc-l3)';
+    return 'var(--wc-l4)';
+  };
+
+  return (
+    <div>
+      <PanelLabel>{IS_CHINESE ? '最佳训练时段' : 'Best Training Hours'}</PanelLabel>
+      <div style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: 320 }}>
+          {/* Hour labels */}
+          <div style={{ display: 'grid', gridTemplateColumns: `28px repeat(18, 1fr)`, gap: 2, marginBottom: 2 }}>
+            <div />
+            {TIME_HEATMAP_HOURS.map((h) => (
+              <div key={h} style={{ fontSize: 9, opacity: 0.3, textAlign: 'center', lineHeight: '12px' }}>
+                {h % 3 === 0 ? `${h}` : ''}
+              </div>
+            ))}
+          </div>
+          {/* Rows */}
+          {TIME_HEATMAP_DAYS.map((day, di) => (
+            <div key={day} style={{ display: 'grid', gridTemplateColumns: `28px repeat(18, 1fr)`, gap: 2, marginBottom: 2 }}>
+              <div style={{ fontSize: 9, opacity: 0.4, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 4 }}>{day}</div>
+              {TIME_HEATMAP_HOURS.map((h, hi) => {
+                const cell = grid[di][hi];
+                return (
+                  <div key={h}
+                    title={cell.count > 0
+                      ? `${IS_CHINESE ? '星期' : ''}${day} ${h}:00 — ${cell.count}${IS_CHINESE ? '次' : ' sessions'}, ${Math.round(cell.totalVol / cell.count)} kg avg vol`
+                      : ''}
+                    style={{
+                      height: 12, borderRadius: 2,
+                      background: getColor(cell.count),
+                      cursor: cell.count > 0 ? 'default' : undefined,
+                    }}
+                  />
+                );
+              })}
+            </div>
+          ))}
+          {/* Legend */}
+          <div className="flex items-center gap-2 mt-2" style={{ fontSize: 9, opacity: 0.35 }}>
+            <span>{IS_CHINESE ? '少' : 'Less'}</span>
+            {['var(--wc-empty)', 'var(--wc-l1)', 'var(--wc-l2)', 'var(--wc-l3)', 'var(--wc-l4)'].map((c, i) => (
+              <div key={i} style={{ width: 10, height: 10, borderRadius: 2, background: c }} />
+            ))}
+            <span>{IS_CHINESE ? '多' : 'More'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
 // STAT CARD — hero stats row
 // =============================================================================
 const HeroStat = ({ label, value, unit, accent, trend }: {
@@ -1109,6 +1268,87 @@ const HeroStat = ({ label, value, unit, accent, trend }: {
 );
 
 // =============================================================================
+// PR CELEBRATION OVERLAY
+// =============================================================================
+const PRCelebration = ({ prs, onClose }: { prs: Array<{ exercise: string; e1rm: number; weight: number; reps: number }>; onClose: () => void }) => {
+  // Confetti particles generated once
+  const particles = useMemo(() => Array.from({ length: 40 }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    delay: `${Math.random() * 1.5}s`,
+    duration: `${1.2 + Math.random() * 1.2}s`,
+    color: ['#f59e0b', '#10b981', '#6366f1', '#ec4899', '#14b8a6', '#f97316'][i % 6],
+    size: `${6 + Math.random() * 8}px`,
+    shape: i % 3 === 0 ? 'circle' : i % 3 === 1 ? 'square' : 'triangle',
+  })), []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      {/* Confetti */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {particles.map((p) => (
+          <div key={p.id} style={{
+            position: 'absolute', top: '-20px', left: p.left,
+            width: p.size, height: p.size,
+            background: p.shape !== 'triangle' ? p.color : 'transparent',
+            borderRadius: p.shape === 'circle' ? '50%' : p.shape === 'square' ? '2px' : '0',
+            borderLeft: p.shape === 'triangle' ? `${parseFloat(p.size)/2}px solid transparent` : undefined,
+            borderRight: p.shape === 'triangle' ? `${parseFloat(p.size)/2}px solid transparent` : undefined,
+            borderBottom: p.shape === 'triangle' ? `${parseFloat(p.size)}px solid ${p.color}` : undefined,
+            animation: `confettiFall ${p.duration} ${p.delay} ease-in forwards`,
+          }} />
+        ))}
+      </div>
+      <style>{`
+        @keyframes confettiFall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes prPop {
+          0% { transform: scale(0.7); opacity: 0; }
+          60% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+      <div
+        className="relative z-10 rounded-2xl p-8 max-w-sm w-full mx-4 text-center"
+        style={{
+          background: 'linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%)',
+          border: '2px solid rgba(99,102,241,0.5)',
+          boxShadow: '0 0 60px rgba(99,102,241,0.4)',
+          animation: 'prPop 0.4s ease-out forwards',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="text-5xl mb-3">🏆</div>
+        <h2 className="text-2xl font-extrabold mb-1" style={{ color: '#f59e0b', textShadow: '0 0 20px rgba(245,158,11,0.5)' }}>
+          {IS_CHINESE ? '新纪录！' : 'New PR!'}
+        </h2>
+        <p className="text-sm opacity-50 mb-5">{IS_CHINESE ? '今天的训练创造了个人新纪录' : "Today's training set a new personal record"}</p>
+        <div className="space-y-2 mb-6">
+          {prs.map((pr) => (
+            <div key={pr.exercise} className="flex items-center justify-between px-4 py-2 rounded-lg"
+              style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)' }}>
+              <span className="text-sm opacity-80 truncate mr-2">{translateExercise(pr.exercise)}</span>
+              <span className="text-sm font-bold tabular-nums shrink-0" style={{ color: '#f59e0b' }}>{pr.e1rm} kg e1RM</span>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose}
+          className="px-6 py-2 rounded-full text-sm font-semibold transition-all"
+          style={{ background: 'rgba(99,102,241,0.8)', color: 'white' }}>
+          {IS_CHINESE ? '太棒了！' : 'Awesome!'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// =============================================================================
 // MAIN PAGE
 // =============================================================================
 const WorkoutsPage = () => {
@@ -1130,6 +1370,10 @@ const WorkoutsPage = () => {
     return prev.length > 0 ? prev : null;
   }, [workouts, year]);
 
+  const [groupVariants, setGroupVariants] = useState(false);
+  const [calendarView, setCalendarView] = useState<'grid' | 'spiral'>('grid');
+  const [showWrapped, setShowWrapped] = useState(false);
+
   const stats = useMemo(() => {
     const count = filteredWorkouts.length;
     const totalVolume = filteredWorkouts.reduce((s, w) => s + w.total_volume_kg, 0);
@@ -1142,7 +1386,21 @@ const WorkoutsPage = () => {
         .forEach((ex) => { exerciseFreq[ex.name] = (exerciseFreq[ex.name] || 0) + ex.sets.length; })
     );
     const topExercises = Object.entries(exerciseFreq).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    return { count, totalVolume, totalDuration, totalSets, streakCurrent, streakLongest, topExercises,
+
+    // Grouped: merge variants by stem
+    const stemFreq: Record<string, { sets: number; variants: string[] }> = {};
+    Object.entries(exerciseFreq).forEach(([name, sets]) => {
+      const stem = getExerciseStem(name);
+      if (!stemFreq[stem]) stemFreq[stem] = { sets: 0, variants: [] };
+      stemFreq[stem].sets += sets;
+      stemFreq[stem].variants.push(name);
+    });
+    const groupedExercises = Object.entries(stemFreq)
+      .sort((a, b) => b[1].sets - a[1].sets)
+      .slice(0, 10)
+      .map(([stem, { sets, variants }]) => ({ stem, sets, variants }));
+
+    return { count, totalVolume, totalDuration, totalSets, streakCurrent, streakLongest, topExercises, groupedExercises,
       avgDuration: count > 0 ? Math.round(totalDuration / count) : 0 };
   }, [filteredWorkouts]);
 
@@ -1180,9 +1438,64 @@ const WorkoutsPage = () => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
 
+  // PR celebration — detect if most recent training day has new PRs
+  const [showCelebration, setShowCelebration] = useState(false);
+  const todayPRs = useMemo(() => {
+    if (workouts.length === 0) return [];
+    const sorted = [...workouts].sort((a, b) => b.start_time.localeCompare(a.start_time));
+    const latestDate = sorted[0].start_time.slice(0, 10);
+    // Only show if latest session is within 1 day from today
+    const today = new Date().toISOString().slice(0, 10);
+    const daysDiff = Math.round((new Date(today).getTime() - new Date(latestDate).getTime()) / 86400000);
+    if (daysDiff > 1) return [];
+    const latestSessions = sorted.filter((w) => w.start_time.slice(0, 10) === latestDate);
+    const historicalSessions = workouts.filter((w) => w.start_time.slice(0, 10) < latestDate);
+    // Build all-time best before today
+    const prevBest: Record<string, number> = {};
+    historicalSessions.forEach((w) => {
+      w.exercises.forEach((ex) => {
+        ex.sets.forEach((s) => {
+          if (['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps) {
+            const e1rm = calcE1RM(s.weight_kg, s.reps);
+            if (e1rm > (prevBest[ex.name] ?? 0)) prevBest[ex.name] = e1rm;
+          }
+        });
+      });
+    });
+    const newPRs: Array<{ exercise: string; e1rm: number; weight: number; reps: number }> = [];
+    latestSessions.forEach((w) => {
+      w.exercises.forEach((ex) => {
+        let bestE1rm = 0, bestWeight = 0, bestReps = 0;
+        ex.sets.forEach((s) => {
+          if (['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps) {
+            const e1rm = calcE1RM(s.weight_kg, s.reps);
+            if (e1rm > bestE1rm) { bestE1rm = e1rm; bestWeight = s.weight_kg; bestReps = s.reps; }
+          }
+        });
+        if (bestE1rm > (prevBest[ex.name] ?? 0)) {
+          newPRs.push({ exercise: ex.name, e1rm: bestE1rm, weight: bestWeight, reps: bestReps });
+        }
+      });
+    });
+    return newPRs;
+  }, [workouts]);
+
+  useEffect(() => {
+    if (todayPRs.length > 0) {
+      const timer = setTimeout(() => setShowCelebration(true), 800);
+      return () => clearTimeout(timer);
+    }
+  }, [todayPRs]);
+
   return (
     <Layout>
       <Helmet><html lang="en" data-theme={theme} /><title>Workouts</title></Helmet>
+
+      {/* PR Celebration */}
+      {showCelebration && <PRCelebration prs={todayPRs} onClose={() => setShowCelebration(false)} />}
+
+      {/* Wrapped Modal */}
+      {showWrapped && <WorkoutWrapped workouts={workouts} year={year === 'Total' ? String(new Date().getFullYear()) : year} onClose={() => setShowWrapped(false)} />}
 
       {/* Single full-width child to override Layout's lg:flex */}
       <div className="w-full min-w-0">
@@ -1190,7 +1503,18 @@ const WorkoutsPage = () => {
         {/* ── HERO ────────────────────────────────────────────────────────── */}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight mb-4 italic">Workouts</h1>
+            <div className="flex items-center gap-3 mb-4">
+              <h1 className="text-4xl font-extrabold tracking-tight italic">Workouts</h1>
+              <button onClick={() => setShowWrapped(true)}
+                className="text-xs px-3 py-1.5 rounded-full font-semibold transition-all"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.2), rgba(245,158,11,0.15))',
+                  border: '1px solid rgba(99,102,241,0.35)',
+                  color: 'var(--wc-l3)',
+                }}>
+                {IS_CHINESE ? '✦ 年度总结' : '✦ Wrapped'}
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               <HeroStat label={IS_CHINESE ? '训练次数' : 'Sessions'}  value={String(stats.count)}
                 trend={trendPct(stats.count, prevStats?.count)} />
@@ -1235,9 +1559,27 @@ const WorkoutsPage = () => {
         {/* ── CALENDAR ─────────────────────────────────────────────────── */}
         {year !== 'Total' && (
           <Card className="mb-6 overflow-x-auto">
-            <WorkoutCalendar workouts={workouts} year={year}
-              onDayClick={(date) => setHighlightDate((prev) => prev === date ? undefined : date)}
-            />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex gap-1">
+                {(['grid', 'spiral'] as const).map((v) => (
+                  <button key={v} onClick={() => setCalendarView(v)}
+                    className="text-xs px-3 py-1 rounded-full transition-all"
+                    style={{
+                      background: calendarView === v ? 'rgba(99,102,241,0.25)' : 'rgba(128,128,128,0.1)',
+                      color: calendarView === v ? 'var(--wc-l3)' : undefined,
+                      border: calendarView === v ? '1px solid rgba(99,102,241,0.4)' : '1px solid transparent',
+                    }}>
+                    {v === 'grid' ? (IS_CHINESE ? '方格' : 'Grid') : (IS_CHINESE ? '螺旋' : 'Spiral')}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {calendarView === 'grid'
+              ? <WorkoutCalendar workouts={workouts} year={year}
+                  onDayClick={(date) => setHighlightDate((prev) => prev === date ? undefined : date)}
+                />
+              : <SpiralCalendar workouts={workouts} year={year} />
+            }
           </Card>
         )}
 
@@ -1249,9 +1591,10 @@ const WorkoutsPage = () => {
             {/* Left sidebar */}
             <div className="w-full lg:w-64 xl:w-72 shrink-0 space-y-4">
               <NextSessionGuide workouts={filteredWorkouts} />
-              <Card><MilestoneCards workouts={filteredWorkouts} /></Card>
-              <Card><StagnationPanel workouts={filteredWorkouts} /></Card>
-              <Card><RecoveryRhythm workouts={workouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? '今日训练建议' : 'Session Advisor'}><SessionAdvisor workouts={filteredWorkouts} /></ExpandableCard>
+              <ExpandableCard title={IS_CHINESE ? '里程碑' : 'Milestones'}><MilestoneCards workouts={filteredWorkouts} /></ExpandableCard>
+              <ExpandableCard title={IS_CHINESE ? '停滞预警' : 'Stagnation'}><StagnationPanel workouts={filteredWorkouts} /></ExpandableCard>
+              <ExpandableCard title={IS_CHINESE ? '恢复节律' : 'Recovery Rhythm'}><RecoveryRhythm workouts={workouts} /></ExpandableCard>
             </div>
 
             {/* Right: workout table — dominant element */}
@@ -1295,18 +1638,28 @@ const WorkoutsPage = () => {
 
         {!collapsed['analytics'] && (<>
           <div className="mb-4">
-            <Card><TrainingHeartbeat workouts={filteredWorkouts} /></Card>
+            <ExpandableCard title={IS_CHINESE ? '训练心跳' : 'Training Heartbeat'}><TrainingHeartbeat workouts={filteredWorkouts} /></ExpandableCard>
+          </div>
+
+          <div className="columns-1 md:columns-2" style={{ columnGap: 16, marginBottom: 16 }}>
+            <div className="break-inside-avoid mb-4">
+              <ExpandableCard title={IS_CHINESE ? '训练 DNA 指纹' : 'Training DNA'}><TrainingDNA workouts={filteredWorkouts} /></ExpandableCard>
+            </div>
+            <div className="break-inside-avoid mb-4">
+              <ExpandableCard title={IS_CHINESE ? '组内疲劳曲线' : 'Intra-Session Fatigue'}><FatigueCurve workouts={filteredWorkouts} /></ExpandableCard>
+            </div>
           </div>
 
           <div className="columns-1 md:columns-2 lg:columns-3" style={{ columnGap: 16 }}>
             {[
-              <Card key="vol"><VolumeAndSetsChart workouts={filteredWorkouts} /></Card>,
-              <Card key="ses"><SessionTrendsChart workouts={filteredWorkouts} /></Card>,
-              <Card key="time"><TimeDistributionCharts workouts={filteredWorkouts} /></Card>,
-              <Card key="freq"><MonthlyFrequencyChart workouts={filteredWorkouts} /></Card>,
-              <Card key="rep"><RepRangePanel workouts={filteredWorkouts} /></Card>,
-              <Card key="type"><WorkoutTypeChart workouts={filteredWorkouts} /></Card>,
-              <Card key="top"><TopSessionsPanel workouts={filteredWorkouts} scoreMap={scoreMap} /></Card>,
+              <ExpandableCard key="vol" title={IS_CHINESE ? '训练量趋势' : 'Volume & Sets'}><VolumeAndSetsChart workouts={filteredWorkouts} /></ExpandableCard>,
+              <ExpandableCard key="ses" title={IS_CHINESE ? '课程趋势' : 'Session Trends'}><SessionTrendsChart workouts={filteredWorkouts} /></ExpandableCard>,
+              <ExpandableCard key="time" title={IS_CHINESE ? '时间分布' : 'Time Distribution'}><TimeDistributionCharts workouts={filteredWorkouts} /></ExpandableCard>,
+              <ExpandableCard key="freq" title={IS_CHINESE ? '月频率' : 'Monthly Frequency'}><MonthlyFrequencyChart workouts={filteredWorkouts} /></ExpandableCard>,
+              <ExpandableCard key="rep" title={IS_CHINESE ? '次数区间' : 'Rep Range'}><RepRangePanel workouts={filteredWorkouts} /></ExpandableCard>,
+              <ExpandableCard key="type" title={IS_CHINESE ? '训练类型' : 'Workout Type'}><WorkoutTypeChart workouts={filteredWorkouts} /></ExpandableCard>,
+              <ExpandableCard key="top" title={IS_CHINESE ? '最佳课程' : 'Top Sessions'}><TopSessionsPanel workouts={filteredWorkouts} scoreMap={scoreMap} /></ExpandableCard>,
+              <ExpandableCard key="heat" title={IS_CHINESE ? '时间热力图' : 'Time Heatmap'}><TimeHeatmapChart workouts={filteredWorkouts} /></ExpandableCard>,
             ].map((card) => (
               <div key={card.key} className="break-inside-avoid mb-4">{card}</div>
             ))}
@@ -1320,61 +1673,112 @@ const WorkoutsPage = () => {
           <div className="columns-1 lg:columns-2" style={{ columnGap: 20 }}>
 
             <div className="break-inside-avoid mb-5">
-              <Card>
-                <BestLiftsPanel workouts={filteredWorkouts} selectedExercise={selectedExercise} onSelectExercise={handleSelectExercise} />
-              </Card>
+              <ExpandableCard title={IS_CHINESE ? '最佳重量' : 'Best Lifts'}>
+                <BestLiftsPanel workouts={filteredWorkouts} />
+              </ExpandableCard>
             </div>
 
             <div className="break-inside-avoid mb-5">
-              <Card>
+              <ExpandableCard title={IS_CHINESE ? '肌群分布' : 'Muscle Map'}>
                 <MuscleBodyMap workouts={filteredWorkouts} />
                 <div className="mt-5 pt-4" style={{ borderTop: '1px solid var(--wo-section-line)' }}>
                   <MuscleVolumeChart workouts={filteredWorkouts} />
                 </div>
-              </Card>
+              </ExpandableCard>
             </div>
 
             {stats.topExercises.length > 0 && (
               <div className="break-inside-avoid mb-5">
-                <Card>
-                  <PanelLabel>{IS_CHINESE ? '常练动作 (点击看进步)' : 'Top Exercises'}</PanelLabel>
-                  <div className="space-y-0.5">
-                    {stats.topExercises.map(([name, sets]) => (
-                      <div key={name}
-                        className="flex items-center gap-2 text-xs cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-all"
-                        style={selectedExercise === name ? { background: 'rgba(99,102,241,0.12)' } : {}}
-                        onClick={() => handleSelectExercise(name)}
-                      >
-                        <span className="flex-1 opacity-75 truncate">{translateExercise(name)}</span>
-                        <span className="opacity-35 whitespace-nowrap">{sets} sets</span>
-                        <span className="opacity-20 text-xs">{selectedExercise === name ? '▾' : '›'}</span>
-                      </div>
-                    ))}
+                <ExpandableCard title={IS_CHINESE ? '常练动作' : 'Top Exercises'}>
+                  <div className="flex items-center justify-between mb-2">
+                    <PanelLabel>{IS_CHINESE ? '常练动作 (点击看进步)' : 'Top Exercises'}</PanelLabel>
+                    <button
+                      onClick={() => { setGroupVariants((v) => !v); setSelectedExercise(null); }}
+                      className="text-xs px-2 py-0.5 rounded-full transition-all"
+                      style={{
+                        background: groupVariants ? 'rgba(99,102,241,0.25)' : 'rgba(128,128,128,0.1)',
+                        color: groupVariants ? 'var(--wc-l3)' : undefined,
+                        border: groupVariants ? '1px solid rgba(99,102,241,0.4)' : '1px solid transparent',
+                      }}
+                    >
+                      {IS_CHINESE ? '合并变体' : 'Merge'} ⇄
+                    </button>
                   </div>
-                </Card>
+                  <div className="space-y-0.5">
+                    {groupVariants
+                      ? stats.groupedExercises.map(({ stem, sets, variants }) => (
+                        <div key={stem}>
+                          <div
+                            className="flex items-center gap-2 text-xs cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-all"
+                            style={selectedExercise === stem ? { background: 'rgba(99,102,241,0.12)' } : {}}
+                            onClick={() => setSelectedExercise((prev) => prev === stem ? null : stem)}
+                          >
+                            <span className="flex-1 opacity-75 truncate">{translateExercise(stem)}</span>
+                            {variants.length > 1 && (
+                              <span className="text-xs px-1 rounded" style={{ background: 'rgba(99,102,241,0.15)', color: 'var(--wc-l3)', opacity: 0.8 }}>
+                                {variants.length}
+                              </span>
+                            )}
+                            <span className="opacity-35 whitespace-nowrap">{sets} sets</span>
+                            <span className="opacity-20 text-xs">{selectedExercise === stem ? '▾' : '›'}</span>
+                          </div>
+                          {selectedExercise === stem && variants.map((v) => (
+                            <ExerciseProgress key={v} name={v} workouts={workouts} onClose={() => setSelectedExercise(null)} />
+                          ))}
+                        </div>
+                      ))
+                      : stats.topExercises.map(([name, sets]) => (
+                        <div key={name}>
+                          <div
+                            className="flex items-center gap-2 text-xs cursor-pointer rounded-lg px-2 py-1.5 -mx-2 transition-all"
+                            style={selectedExercise === name ? { background: 'rgba(99,102,241,0.12)' } : {}}
+                            onClick={() => handleSelectExercise(name)}
+                          >
+                            <span className="flex-1 opacity-75 truncate">{translateExercise(name)}</span>
+                            <span className="opacity-35 whitespace-nowrap">{sets} sets</span>
+                            <span className="opacity-20 text-xs">{selectedExercise === name ? '▾' : '›'}</span>
+                          </div>
+                          {selectedExercise === name && (
+                            <ExerciseProgress name={name} workouts={workouts} onClose={() => setSelectedExercise(null)} />
+                          )}
+                        </div>
+                      ))
+                    }
+                  </div>
+                </ExpandableCard>
               </div>
             )}
 
-            {selectedExercise && (
-              <div className="break-inside-avoid mb-5">
-                <ExerciseProgress name={selectedExercise} workouts={workouts} onClose={() => setSelectedExercise(null)} />
-              </div>
-            )}
-
             <div className="break-inside-avoid mb-5">
-              <Card><MuscleHexPanel workouts={filteredWorkouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? '肌群六角' : 'Muscle Hex'}><MuscleHexPanel workouts={filteredWorkouts} /></ExpandableCard>
             </div>
 
             <div className="break-inside-avoid mb-5">
-              <Card><PRTimeline workouts={workouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? 'PR 时间轴' : 'PR Timeline'}><PRTimeline workouts={workouts} /></ExpandableCard>
             </div>
 
             <div className="break-inside-avoid mb-5">
-              <Card><ProgressiveOverloadPanel workouts={filteredWorkouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? '渐进超负荷' : 'Progressive Overload'}><ProgressiveOverloadPanel workouts={filteredWorkouts} /></ExpandableCard>
             </div>
 
             <div className="break-inside-avoid mb-5">
-              <Card><MuscleDistributionPanel workouts={filteredWorkouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? '肌群分布' : 'Muscle Distribution'}><MuscleDistributionPanel workouts={filteredWorkouts} /></ExpandableCard>
+            </div>
+
+            <div className="break-inside-avoid mb-5">
+              <ExpandableCard title="WILKS"><WILKSPanel workouts={filteredWorkouts} /></ExpandableCard>
+            </div>
+
+            <div className="break-inside-avoid mb-5">
+              <ExpandableCard title={IS_CHINESE ? '训练量临界点' : 'Volume Landmarks'}><VolumeLandmarks workouts={filteredWorkouts} /></ExpandableCard>
+            </div>
+
+            <div className="break-inside-avoid mb-5">
+              <ExpandableCard title={IS_CHINESE ? '力量对标' : 'Strength Standards'}><StrengthStandards workouts={filteredWorkouts} /></ExpandableCard>
+            </div>
+
+            <div className="break-inside-avoid mb-5">
+              <ExpandableCard title={IS_CHINESE ? '动作共现矩阵' : 'Exercise Co-Matrix'}><ExerciseCoMatrix workouts={filteredWorkouts} /></ExpandableCard>
             </div>
 
           </div>
@@ -1382,29 +1786,38 @@ const WorkoutsPage = () => {
 
         {/* ── SECTION: 恢复状态 ─────────────────────────────────────────── */}
         <SectionHeader label={IS_CHINESE ? '恢复状态' : 'Recovery'} collapsed={collapsed['recovery']} onToggle={() => toggleSection('recovery')} />
-        {!collapsed['recovery'] && (
+        {!collapsed['recovery'] && (<>
+          <div className="mb-4">
+            <ExpandableCard title={IS_CHINESE ? '综合准备度' : 'Readiness Score'}><ReadinessScore workouts={filteredWorkouts} /></ExpandableCard>
+          </div>
           <div className="columns-1 md:columns-2" style={{ columnGap: 16 }}>
             <div className="break-inside-avoid mb-4">
-              <Card><MuscleRecovery workouts={filteredWorkouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? '肌群恢复' : 'Muscle Recovery'}><MuscleRecovery workouts={filteredWorkouts} /></ExpandableCard>
             </div>
             <div className="break-inside-avoid mb-4">
-              <Card><E1RMCompare workouts={filteredWorkouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? 'e1RM 对比' : 'e1RM Compare'}><E1RMCompare workouts={filteredWorkouts} /></ExpandableCard>
             </div>
           </div>
-        )}
+        </>)}
 
         {/* ── SECTION: 训练负荷 ─────────────────────────────────────────── */}
         <SectionHeader label={IS_CHINESE ? '训练负荷' : 'Training Load'} collapsed={collapsed['load']} onToggle={() => toggleSection('load')} />
         {!collapsed['load'] && (<>
           <div className="mb-4">
-            <Card><TrainingLoad workouts={filteredWorkouts} /></Card>
+            <ExpandableCard title={IS_CHINESE ? '训练负荷' : 'Training Load'}><TrainingLoad workouts={filteredWorkouts} /></ExpandableCard>
           </div>
           <div className="columns-1 md:columns-2" style={{ columnGap: 16 }}>
             <div className="break-inside-avoid mb-4">
-              <Card><ComparisonPanel workouts={filteredWorkouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? '对比分析' : 'Comparison'}><ComparisonPanel workouts={filteredWorkouts} /></ExpandableCard>
             </div>
             <div className="break-inside-avoid mb-4">
-              <Card><HighlightReel workouts={workouts} /></Card>
+              <ExpandableCard title={IS_CHINESE ? '高光时刻' : 'Highlight Reel'}><HighlightReel workouts={workouts} /></ExpandableCard>
+            </div>
+            <div className="break-inside-avoid mb-4">
+              <ExpandableCard title={IS_CHINESE ? '与过去的自己' : 'Vs Myself'}><VsMyselfPanel workouts={workouts} /></ExpandableCard>
+            </div>
+            <div className="break-inside-avoid mb-4">
+              <ExpandableCard title={IS_CHINESE ? '训练阶段' : 'Training Phases'}><TrainingPhasePanel /></ExpandableCard>
             </div>
           </div>
         </>)}

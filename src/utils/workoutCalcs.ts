@@ -1,5 +1,71 @@
 import type { WorkoutSession } from '@/types/workout';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Linear regression — least squares
+// ─────────────────────────────────────────────────────────────────────────────
+export const linearRegression = (
+  pts: Array<{ x: number; y: number }>
+): { slope: number; intercept: number } => {
+  const n = pts.length;
+  if (n < 2) return { slope: 0, intercept: pts[0]?.y ?? 0 };
+  const sumX = pts.reduce((s, p) => s + p.x, 0);
+  const sumY = pts.reduce((s, p) => s + p.y, 0);
+  const sumXY = pts.reduce((s, p) => s + p.x * p.y, 0);
+  const sumXX = pts.reduce((s, p) => s + p.x * p.x, 0);
+  const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  const intercept = (sumY - slope * sumX) / n;
+  return { slope, intercept };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exercise stem — strip parenthetical variant  e.g. "Bench Press (Barbell)" → "Bench Press"
+// ─────────────────────────────────────────────────────────────────────────────
+export const getExerciseStem = (name: string): string =>
+  name.replace(/\s*\([^)]*\)\s*/g, '').trim();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Exercise co-occurrence matrix
+// ─────────────────────────────────────────────────────────────────────────────
+export const calcExerciseCoMatrix = (
+  workouts: WorkoutSession[], topN = 15
+): { exercises: string[]; matrix: number[][] } => {
+  // count how many sessions each exercise appears in
+  const freq: Record<string, number> = {};
+  workouts.forEach((w) => {
+    const names = [...new Set(w.exercises.map((e) => e.name))];
+    names.forEach((n) => { freq[n] = (freq[n] ?? 0) + 1; });
+  });
+  const top = Object.entries(freq)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, topN)
+    .map(([name]) => name);
+  const idx = Object.fromEntries(top.map((n, i) => [n, i]));
+  const matrix: number[][] = Array.from({ length: top.length }, () => Array(top.length).fill(0));
+  workouts.forEach((w) => {
+    const names = [...new Set(w.exercises.map((e) => e.name))].filter((n) => idx[n] !== undefined);
+    for (let i = 0; i < names.length; i++) {
+      for (let j = 0; j < names.length; j++) {
+        if (i !== j) matrix[idx[names[i]]][idx[names[j]]]++;
+      }
+    }
+  });
+  return { exercises: top, matrix };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WILKS2 score (2020 coefficients)
+// ─────────────────────────────────────────────────────────────────────────────
+const WILKS_MALE    = [-216.0475144, 16.2606339, -0.002388645, -0.00113732, 7.01863e-6, -1.291e-8];
+const WILKS_FEMALE  = [594.31747775582, -27.23842536447, 0.82112226871, -0.00930733913, 0.00004731582, -0.00000009054];
+
+export const calcWILKS = (bodyweightKg: number, liftedKg: number, isMale: boolean): number => {
+  const c = isMale ? WILKS_MALE : WILKS_FEMALE;
+  const bw = bodyweightKg;
+  const denom = c[0] + c[1]*bw + c[2]*bw**2 + c[3]*bw**3 + c[4]*bw**4 + c[5]*bw**5;
+  if (denom === 0) return 0;
+  return Math.round((liftedKg * 500) / denom);
+};
+
 // Exercises where lower weight = stronger (assisted resistance helps less = harder)
 const ASSISTED_PATTERN = /assisted/i;
 const isAssisted = (name: string): boolean => ASSISTED_PATTERN.test(name);
