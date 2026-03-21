@@ -1,5 +1,210 @@
 [
   {
+    "id": "0feb22e85bd8",
+    "title": "3 手臂 肱二头➕ 肱三头",
+    "start_time": "2026-03-21T15:05:00",
+    "end_time": "2026-03-21T16:23:00",
+    "duration_seconds": 4680,
+    "description": "",
+    "source": "hevy",
+    "exercises": [
+      {
+        "name": "Warm Up",
+        "notes": "",
+        "sets": [
+          {
+            "index": 0,
+            "type": "normal",
+            "duration_seconds": 202
+          }
+        ]
+      },
+      {
+        "name": "EZ Bar Biceps Curl",
+        "notes": "",
+        "sets": [
+          {
+            "index": 0,
+            "type": "normal",
+            "weight_kg": 20.0,
+            "reps": 9
+          },
+          {
+            "index": 1,
+            "type": "normal",
+            "weight_kg": 20.0,
+            "reps": 10
+          },
+          {
+            "index": 2,
+            "type": "normal",
+            "weight_kg": 20.0,
+            "reps": 10
+          },
+          {
+            "index": 3,
+            "type": "normal",
+            "weight_kg": 20.0,
+            "reps": 10
+          }
+        ]
+      },
+      {
+        "name": "Triceps Extension (Dumbbell)",
+        "notes": "",
+        "sets": [
+          {
+            "index": 0,
+            "type": "normal",
+            "weight_kg": 12.5,
+            "reps": 12
+          },
+          {
+            "index": 1,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          },
+          {
+            "index": 2,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          },
+          {
+            "index": 3,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          }
+        ]
+      },
+      {
+        "name": "Bicep Curl (Dumbbell)",
+        "notes": "",
+        "sets": [
+          {
+            "index": 0,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          },
+          {
+            "index": 1,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          },
+          {
+            "index": 2,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 9
+          },
+          {
+            "index": 3,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 6
+          }
+        ]
+      },
+      {
+        "name": "Triceps Rope Pushdown",
+        "notes": "",
+        "sets": [
+          {
+            "index": 0,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 15
+          },
+          {
+            "index": 1,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 15
+          },
+          {
+            "index": 2,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 15
+          },
+          {
+            "index": 3,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 15
+          }
+        ]
+      },
+      {
+        "name": "Preacher Curl (Dumbbell)",
+        "notes": "",
+        "sets": [
+          {
+            "index": 0,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          },
+          {
+            "index": 1,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          },
+          {
+            "index": 2,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          },
+          {
+            "index": 3,
+            "type": "normal",
+            "weight_kg": 15.0,
+            "reps": 12
+          }
+        ]
+      },
+      {
+        "name": "Overhead Triceps Extension (Cable)",
+        "notes": "",
+        "sets": [
+          {
+            "index": 0,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 12
+          },
+          {
+            "index": 1,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 11
+          },
+          {
+            "index": 2,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 11
+          },
+          {
+            "index": 3,
+            "type": "normal",
+            "weight_kg": 13.75,
+            "reps": 8
+          }
+        ]
+      }
+    ],
+    "total_volume_kg": 4177.5,
+    "total_sets": 25,
+    "exercise_count": 7
+  },
+  {
     "id": "af91d25110e3",
     "title": "2  胸➕ 肩前中束",
     "start_time": "2026-03-20T20:02:00",
