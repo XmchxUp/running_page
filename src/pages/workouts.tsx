@@ -26,8 +26,9 @@ import {
   buildPRTimeline,
   linearRegression,
   calcExerciseCoMatrix,
-  calcWILKS,
+
   getExerciseStem,
+  isAssisted,
 } from '@/utils/workoutCalcs';
 import {
   IS_CHINESE,
@@ -46,16 +47,16 @@ import E1RMCompare from '@/components/workout/E1RMCompare';
 import TrainingLoad from '@/components/workout/TrainingLoad';
 import ComparisonPanel from '@/components/workout/ComparisonPanel';
 import HighlightReel from '@/components/workout/HighlightReel';
-import WILKSPanel from '@/components/workout/WILKSPanel';
+
 import VsMyselfPanel from '@/components/workout/VsMyselfPanel';
 import ExerciseCoMatrix from '@/components/workout/ExerciseCoMatrix';
 import SpiralCalendar from '@/components/WorkoutCalendar/SpiralCalendar';
-import TrainingPhasePanel from '@/components/workout/TrainingPhasePanel';
+
 import WorkoutWrapped from '@/components/workout/WorkoutWrapped';
 import ReadinessScore from '@/components/workout/ReadinessScore';
 import VolumeLandmarks from '@/components/workout/VolumeLandmarks';
 import StrengthStandards from '@/components/workout/StrengthStandards';
-import TrainingDNA from '@/components/workout/TrainingDNA';
+
 import SessionAdvisor from '@/components/workout/SessionAdvisor';
 import FatigueCurve from '@/components/workout/FatigueCurve';
 import ExpandableCard from '@/components/workout/ExpandableCard';
@@ -536,10 +537,10 @@ const StagnationPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
       <div className="space-y-1.5">
         {alerts.slice(0, 5).map(({ name, sessionsSincePR, bestE1rm, lastPRDate }) => (
           <div key={name} className="flex items-start gap-2 text-xs rounded-lg px-3 py-2"
-            style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.15)' }}>
+            style={{ background: 'var(--wo-negative-bg)', border: '1px solid var(--wo-negative)' }}>
             <span className="flex-1 opacity-80 truncate font-medium">{translateExercise(name)}</span>
             <div className="text-right shrink-0">
-              <div style={{ color: 'rgba(239,68,68,0.9)' }} className="font-semibold">
+              <div style={{ color: 'var(--wo-negative)' }} className="font-semibold">
                 {IS_CHINESE ? `${sessionsSincePR} 次未突破` : `${sessionsSincePR}x no PR`}
               </div>
               <div className="opacity-35">e1RM {bestE1rm} kg · {lastPRDate}</div>
@@ -559,12 +560,12 @@ const ProgressiveOverloadPanel = ({ workouts }: { workouts: WorkoutSession[] }) 
     <div>
       <PanelLabel>{IS_CHINESE ? '渐进超负荷' : 'Progressive Overload'}</PanelLabel>
       <div className="space-y-2">
-        {overloads.slice(0, 8).map(({ name, firstE1rm, lastE1rm, pctChange, sessions }) => (
+        {overloads.slice(0, 8).map(({ name, firstE1rm, lastE1rm, pctChange, sessions, assisted }) => (
           <div key={name} className="flex items-center gap-2 text-xs">
-            <span className="flex-1 opacity-75 truncate">{translateExercise(name)}</span>
+            <span className="flex-1 opacity-75 truncate">{translateExercise(name)}{assisted ? <span className="opacity-40 ml-1">↓</span> : null}</span>
             <span className="opacity-35 tabular-nums whitespace-nowrap">{firstE1rm}→{lastE1rm} kg</span>
             <span className="font-semibold tabular-nums whitespace-nowrap w-10 text-right"
-              style={{ color: pctChange > 0 ? 'var(--wc-l4)' : 'rgba(239,68,68,0.85)' }}>
+              style={{ color: pctChange > 0 ? 'var(--wo-positive)' : 'var(--wo-negative)' }}>
               {pctChange > 0 ? '+' : ''}{pctChange}%
             </span>
             <span className="opacity-25 tabular-nums w-6 text-right">{sessions}x</span>
@@ -757,46 +758,58 @@ const BestLiftsPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
 
 // Exercise progress chart — dual line (e1RM + session vol) + prediction
 const ExerciseProgress = ({ name, workouts, onClose }: { name: string; workouts: WorkoutSession[]; onClose: () => void }) => {
+  const assisted = isAssisted(name);
   const data = useMemo(() => {
     const pts: Array<{ date: string; e1rm: number; weight: number; reps: number; sessionVol: number }> = [];
     [...workouts].sort((a, b) => a.start_time.localeCompare(b.start_time)).forEach((w) => {
       const ex = w.exercises.find((e) => e.name === name);
       if (!ex) return;
-      let bestE1rm = 0, bestWeight = 0, bestReps = 0, sessionVol = 0;
+      // For assisted: hardest set = lowest e1rm (least assistance used)
+      let bestE1rm = assisted ? Infinity : 0, bestWeight = 0, bestReps = 0, sessionVol = 0;
       ex.sets.filter((s) => ['normal', 'dropset', 'failure'].includes(s.type)).forEach((s) => {
         if ((s.weight_kg ?? 0) > 0 && s.reps !== undefined) {
           sessionVol += s.weight_kg! * s.reps;
           const e1rm = calcE1RM(s.weight_kg!, s.reps);
-          if (e1rm > bestE1rm) { bestE1rm = e1rm; bestWeight = s.weight_kg!; bestReps = s.reps; }
+          const better = assisted ? e1rm < bestE1rm : e1rm > bestE1rm;
+          if (better) { bestE1rm = e1rm; bestWeight = s.weight_kg!; bestReps = s.reps; }
         }
       });
-      if (bestE1rm > 0) pts.push({ date: w.start_time.slice(0, 10), e1rm: bestE1rm, weight: bestWeight, reps: bestReps, sessionVol: Math.round(sessionVol) });
+      if (bestE1rm > 0 && bestE1rm !== Infinity)
+        pts.push({ date: w.start_time.slice(0, 10), e1rm: bestE1rm, weight: bestWeight, reps: bestReps, sessionVol: Math.round(sessionVol) });
     });
     return pts;
-  }, [name, workouts]);
+  }, [name, workouts, assisted]);
 
   const prDates = useMemo(() => {
-    let best = 0; const prs = new Set<string>();
-    data.forEach((d) => { if (d.e1rm > best) { best = d.e1rm; prs.add(d.date); } });
+    // For assisted: PR = new minimum e1RM (less assistance needed)
+    let best = assisted ? Infinity : 0; const prs = new Set<string>();
+    data.forEach((d) => {
+      const isPR = assisted ? d.e1rm < best : d.e1rm > best;
+      if (isPR) { best = d.e1rm; prs.add(d.date); }
+    });
     return prs;
-  }, [data]);
+  }, [data, assisted]);
 
   // PR prediction: linear regression on recent sessions, extend 12 weeks
   const { chartData, predictionLabel } = useMemo(() => {
     if (data.length < 3) return { chartData: data.map((d) => ({ ...d, predicted: undefined as number | undefined })), predictionLabel: null };
     const recent = data.slice(-Math.min(data.length, 20));
     const t0 = new Date(recent[0].date).getTime();
-    const pts = recent.map((d) => ({ x: (new Date(d).getTime() - t0) / 86400000, y: d.e1rm }));
+    const pts = recent.map((d) => ({ x: (new Date(d.date).getTime() - t0) / 86400000, y: d.e1rm }));
     const { slope, intercept } = linearRegression(pts);
-    if (slope <= 0) return { chartData: data.map((d) => ({ ...d, predicted: undefined as number | undefined })), predictionLabel: null };
+    // For assisted: progress = negative slope (e1rm decreasing = less assistance needed)
+    const isProgressing = assisted ? slope < 0 : slope > 0;
+    if (!isProgressing) return { chartData: data.map((d) => ({ ...d, predicted: undefined as number | undefined })), predictionLabel: null };
     // project 12 weeks out from last data point
     const lastDate = new Date(data[data.length - 1].date);
     const lastX = (lastDate.getTime() - t0) / 86400000;
     const currentE1rm = data[data.length - 1].e1rm;
-    // find how many days to reach next 5kg milestone
-    const nextMilestone = Math.ceil(currentE1rm / 5) * 5;
-    const daysToMilestone = slope > 0 ? Math.round((nextMilestone - intercept - slope * lastX) / slope) : null;
-    const weeksToMilestone = daysToMilestone !== null ? Math.round(daysToMilestone / 7) : null;
+    // find how many days to reach next milestone
+    const nextMilestone = assisted
+      ? Math.floor(currentE1rm / 5) * 5  // for assisted: next lower 5kg milestone
+      : Math.ceil(currentE1rm / 5) * 5;  // for normal: next higher 5kg milestone
+    const daysToMilestone = slope !== 0 ? Math.round((nextMilestone - intercept - slope * lastX) / slope) : null;
+    const weeksToMilestone = daysToMilestone !== null && daysToMilestone > 0 ? Math.round(daysToMilestone / 7) : null;
     // build prediction tail (12 weeks)
     const predPoints: Array<{ date: string; e1rm: undefined; weight: undefined; reps: undefined; sessionVol: undefined; predicted: number }> = [];
     for (let w = 1; w <= 12; w++) {
@@ -1643,7 +1656,6 @@ const WorkoutsPage = () => {
 
           <div className="columns-1 md:columns-2" style={{ columnGap: 16, marginBottom: 16 }}>
             <div className="break-inside-avoid mb-4">
-              <ExpandableCard title={IS_CHINESE ? '训练 DNA 指纹' : 'Training DNA'}><TrainingDNA workouts={filteredWorkouts} /></ExpandableCard>
             </div>
             <div className="break-inside-avoid mb-4">
               <ExpandableCard title={IS_CHINESE ? '组内疲劳曲线' : 'Intra-Session Fatigue'}><FatigueCurve workouts={filteredWorkouts} /></ExpandableCard>
@@ -1766,7 +1778,6 @@ const WorkoutsPage = () => {
             </div>
 
             <div className="break-inside-avoid mb-5">
-              <ExpandableCard title="WILKS"><WILKSPanel workouts={filteredWorkouts} /></ExpandableCard>
             </div>
 
             <div className="break-inside-avoid mb-5">
@@ -1816,9 +1827,7 @@ const WorkoutsPage = () => {
             <div className="break-inside-avoid mb-4">
               <ExpandableCard title={IS_CHINESE ? '与过去的自己' : 'Vs Myself'}><VsMyselfPanel workouts={workouts} /></ExpandableCard>
             </div>
-            <div className="break-inside-avoid mb-4">
-              <ExpandableCard title={IS_CHINESE ? '训练阶段' : 'Training Phases'}><TrainingPhasePanel /></ExpandableCard>
-            </div>
+
           </div>
         </>)}
 

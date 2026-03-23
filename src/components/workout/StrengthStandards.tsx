@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { WorkoutSession } from '@/types/workout';
 import { calcE1RM } from '@/utils/workoutCalcs';
 import { IS_CHINESE } from './WorkoutUI';
@@ -58,7 +58,14 @@ function radarPoint(axisDeg: number, r: number) {
 }
 
 export default function StrengthStandards({ workouts }: { workouts: WorkoutSession[] }) {
-  const bw = parseFloat(localStorage.getItem(BW_KEY) ?? '') || 0;
+  const [bwInput, setBwInput] = useState(() => localStorage.getItem(BW_KEY) ?? '');
+  const bw = parseFloat(bwInput) || 0;
+
+  const handleBwChange = (v: string) => {
+    setBwInput(v);
+    const n = parseFloat(v);
+    if (n > 0) localStorage.setItem(BW_KEY, String(n));
+  };
 
   const lifts = useMemo(() => Object.fromEntries(
     Object.entries(STANDARDS).map(([key, { pat }]) => [key, getBestE1RM(workouts, pat)])
@@ -72,16 +79,6 @@ export default function StrengthStandards({ workouts }: { workouts: WorkoutSessi
       ])
     ) as Record<LiftKey, number>;
   }, [lifts, bw]);
-
-  if (bw <= 0) {
-    return (
-      <div className="text-center py-6">
-        <div style={{ fontSize: 12, opacity: 0.4 }}>
-          {IS_CHINESE ? '请先在 WILKS 面板输入体重' : 'Enter bodyweight in the WILKS panel first'}
-        </div>
-      </div>
-    );
-  }
 
   // Radar: normalize each axis to 0-1 based on world standard
   const R_MAX = 65;
@@ -101,11 +98,34 @@ export default function StrengthStandards({ workouts }: { workouts: WorkoutSessi
       <div className="text-xs font-semibold uppercase tracking-[0.1em] opacity-40 mb-3">
         {IS_CHINESE ? '力量水平对标' : 'Strength Standards'}
       </div>
-      <div style={{ fontSize: 9, opacity: 0.3, marginBottom: 12 }}>
-        {IS_CHINESE ? `体重 ${bw}kg · e1RM 估算 · 参考 Symmetric Strength` : `BW ${bw}kg · e1RM estimated · Ref: Symmetric Strength`}
+      <div className="flex items-center gap-2 mb-3">
+        <input
+          type="number" min="30" max="200" step="0.5"
+          value={bwInput}
+          onChange={(e) => handleBwChange(e.target.value)}
+          placeholder={IS_CHINESE ? '输入体重 kg' : 'Bodyweight kg'}
+          className="flex-1 rounded-lg px-3 py-1.5 text-xs"
+          style={{
+            background: 'var(--wt-chip-bg)',
+            border: '1px solid var(--wt-border)',
+            outline: 'none',
+            color: 'inherit',
+          }}
+        />
+        {bw > 0 && (
+          <span style={{ fontSize: 10, opacity: 0.4 }}>{bw} kg</span>
+        )}
+      </div>
+      {bw <= 0 && (
+        <div className="text-center py-4" style={{ fontSize: 11, opacity: 0.35 }}>
+          {IS_CHINESE ? '请输入体重以查看力量等级' : 'Enter bodyweight to see strength levels'}
+        </div>
+      )}
+      <div style={{ fontSize: 9, opacity: 0.25, marginBottom: 12 }}>
+        {IS_CHINESE ? 'e1RM 估算 · 参考 Symmetric Strength' : 'e1RM estimated · Ref: Symmetric Strength'}
       </div>
 
-      <div className="flex flex-col items-center mb-4">
+      {bw > 0 && <div className="flex flex-col items-center mb-4">
         <svg width={RADAR_SIZE} height={RADAR_SIZE} viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}>
           {/* Reference rings */}
           {levelRings.map((f, i) => {
@@ -136,10 +156,9 @@ export default function StrengthStandards({ workouts }: { workouts: WorkoutSessi
             );
           })}
         </svg>
-      </div>
+      </div>}
 
-      {/* Per-lift rows */}
-      <div className="space-y-3">
+      {bw > 0 && <div className="space-y-3">
         {AXES.map((key) => {
           const { ratios, labelCN, label } = STANDARDS[key];
           const e1rm = lifts[key];
@@ -184,7 +203,7 @@ export default function StrengthStandards({ workouts }: { workouts: WorkoutSessi
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 }

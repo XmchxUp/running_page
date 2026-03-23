@@ -96,6 +96,40 @@
   --wo-card-border: rgba(255, 255, 255, 0.07);
   --wo-card-hover:  rgba(255, 255, 255, 0.06);
   --wo-section-line: rgba(255, 255, 255, 0.08);
+
+  /* ── Semantic chart colors — dark default ──────────────────────────────
+     All chart components must use these variables instead of hardcoded hex.
+     Every color is tested for contrast on dark card backgrounds.
+  ────────────────────────────────────────────────────────────────────── */
+  /* Primary series — indigo (matches brand) */
+  --wo-chart-a:        #818cf8;   /* indigo-400  */
+  /* Secondary / compare series — teal, high contrast against indigo */
+  --wo-chart-b:        #2dd4bf;   /* teal-400    */
+  /* Tertiary series */
+  --wo-chart-c:        #f472b6;   /* pink-400    */
+  /* Multi-line palette (E1RMCompare etc.) */
+  --wo-series-1:       #818cf8;   /* indigo-400  */
+  --wo-series-2:       #f472b6;   /* pink-400    */
+  --wo-series-3:       #fb923c;   /* orange-400  */
+  --wo-series-4:       #34d399;   /* emerald-400 */
+  --wo-series-5:       #38bdf8;   /* sky-400     */
+  --wo-series-6:       #c084fc;   /* purple-400  */
+  --wo-series-7:       #fbbf24;   /* amber-400   */
+  --wo-series-8:       #2dd4bf;   /* teal-400    */
+  /* Semantic state colors */
+  --wo-positive:       #34d399;   /* emerald-400 */
+  --wo-positive-bg:    rgba(52, 211, 153, 0.12);
+  --wo-negative:       #f87171;   /* red-400     */
+  --wo-negative-bg:    rgba(248, 113, 113, 0.10);
+  --wo-warning:        #fbbf24;   /* amber-400   */
+  --wo-warning-bg:     rgba(251, 191, 36, 0.12);
+  /* Fitness tracking */
+  --wo-fitness:        #60a5fa;   /* blue-400    */
+  --wo-fatigue:        #f87171;   /* red-400     */
+  --wo-form:           #34d399;   /* emerald-400 */
+  /* Chart infrastructure */
+  --wo-grid:           rgba(255, 255, 255, 0.08);
+  --wo-axis-text:      rgba(255, 255, 255, 0.30);
 }
 
 @media (prefers-color-scheme: light) {
@@ -120,6 +154,30 @@
     --wo-card-border: rgba(0, 0, 0, 0.07);
     --wo-card-hover:  rgba(0, 0, 0, 0.03);
     --wo-section-line: rgba(0, 0, 0, 0.09);
+
+    /* Chart colors — light theme: shift to darker shades for contrast on white */
+    --wo-chart-a:        #4338ca;   /* indigo-700  */
+    --wo-chart-b:        #0d9488;   /* teal-600    */
+    --wo-chart-c:        #db2777;   /* pink-600    */
+    --wo-series-1:       #4338ca;   /* indigo-700  */
+    --wo-series-2:       #db2777;   /* pink-600    */
+    --wo-series-3:       #c2410c;   /* orange-700  */
+    --wo-series-4:       #059669;   /* emerald-600 */
+    --wo-series-5:       #0369a1;   /* sky-700     */
+    --wo-series-6:       #7c3aed;   /* violet-600  */
+    --wo-series-7:       #b45309;   /* amber-700   */
+    --wo-series-8:       #0d9488;   /* teal-600    */
+    --wo-positive:       #059669;   /* emerald-600 */
+    --wo-positive-bg:    rgba(5, 150, 105, 0.10);
+    --wo-negative:       #dc2626;   /* red-600     */
+    --wo-negative-bg:    rgba(220, 38, 38, 0.08);
+    --wo-warning:        #b45309;   /* amber-700   */
+    --wo-warning-bg:     rgba(180, 83, 9, 0.10);
+    --wo-fitness:        #1d4ed8;   /* blue-700    */
+    --wo-fatigue:        #dc2626;   /* red-600     */
+    --wo-form:           #059669;   /* emerald-600 */
+    --wo-grid:           rgba(0, 0, 0, 0.07);
+    --wo-axis-text:      rgba(0, 0, 0, 0.30);
   }
 }
 
@@ -145,6 +203,29 @@
   --wo-card-border: rgba(0, 0, 0, 0.07);
   --wo-card-hover:  rgba(0, 0, 0, 0.03);
   --wo-section-line: rgba(0, 0, 0, 0.09);
+
+  --wo-chart-a:        #4338ca;
+  --wo-chart-b:        #0d9488;
+  --wo-chart-c:        #db2777;
+  --wo-series-1:       #4338ca;
+  --wo-series-2:       #db2777;
+  --wo-series-3:       #c2410c;
+  --wo-series-4:       #059669;
+  --wo-series-5:       #0369a1;
+  --wo-series-6:       #7c3aed;
+  --wo-series-7:       #b45309;
+  --wo-series-8:       #0d9488;
+  --wo-positive:       #059669;
+  --wo-positive-bg:    rgba(5, 150, 105, 0.10);
+  --wo-negative:       #dc2626;
+  --wo-negative-bg:    rgba(220, 38, 38, 0.08);
+  --wo-warning:        #b45309;
+  --wo-warning-bg:     rgba(180, 83, 9, 0.10);
+  --wo-fitness:        #1d4ed8;
+  --wo-fatigue:        #dc2626;
+  --wo-form:           #059669;
+  --wo-grid:           rgba(0, 0, 0, 0.07);
+  --wo-axis-text:      rgba(0, 0, 0, 0.30);
 }
 
 [data-theme='dark'] {
@@ -168,6 +249,29 @@
   --wo-card-border: rgba(255, 255, 255, 0.07);
   --wo-card-hover:  rgba(255, 255, 255, 0.06);
   --wo-section-line: rgba(255, 255, 255, 0.08);
+
+  --wo-chart-a:        #818cf8;
+  --wo-chart-b:        #2dd4bf;
+  --wo-chart-c:        #f472b6;
+  --wo-series-1:       #818cf8;
+  --wo-series-2:       #f472b6;
+  --wo-series-3:       #fb923c;
+  --wo-series-4:       #34d399;
+  --wo-series-5:       #38bdf8;
+  --wo-series-6:       #c084fc;
+  --wo-series-7:       #fbbf24;
+  --wo-series-8:       #2dd4bf;
+  --wo-positive:       #34d399;
+  --wo-positive-bg:    rgba(52, 211, 153, 0.12);
+  --wo-negative:       #f87171;
+  --wo-negative-bg:    rgba(248, 113, 113, 0.10);
+  --wo-warning:        #fbbf24;
+  --wo-warning-bg:     rgba(251, 191, 36, 0.12);
+  --wo-fitness:        #60a5fa;
+  --wo-fatigue:        #f87171;
+  --wo-form:           #34d399;
+  --wo-grid:           rgba(255, 255, 255, 0.08);
+  --wo-axis-text:      rgba(255, 255, 255, 0.30);
 }
 
 [data-theme='light'] {

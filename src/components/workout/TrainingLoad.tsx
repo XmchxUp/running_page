@@ -10,10 +10,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   ReferenceLine,
-  ReferenceArea,
 } from 'recharts';
 import { WorkoutSession } from '@/types/workout';
-import { loadPhases, PHASE_COLORS, PHASE_STROKE, type TrainingPhase } from './TrainingPhasePanel';
 
 const IS_CHINESE = true;
 
@@ -25,8 +23,6 @@ const TOOLTIP_STYLE: React.CSSProperties = {
 };
 
 const TrainingLoad = ({ workouts }: { workouts: WorkoutSession[] }) => {
-  const phases = useMemo(loadPhases, []);
-
   const data = useMemo(() => {
     // Build daily volume map
     const volMap: Record<string, number> = {};
@@ -84,30 +80,16 @@ const TrainingLoad = ({ workouts }: { workouts: WorkoutSession[] }) => {
         <div className="text-xs font-semibold uppercase tracking-[0.1em] opacity-40">
           {IS_CHINESE ? '训练负荷 ATL/CTL/TSB' : 'Training Load'}
         </div>
-        <div className="flex gap-3 text-xs opacity-40">
-          <span style={{ color: '#3b82f6' }}>── CTL 体能</span>
-          <span style={{ color: '#ef4444' }}>── ATL 疲劳</span>
-          <span style={{ color: '#22c55e' }}>▪ TSB 状态</span>
+        <div className="flex gap-3 text-xs opacity-60">
+          <span style={{ color: 'var(--wo-fitness)' }}>── CTL 体能</span>
+          <span style={{ color: 'var(--wo-fatigue)' }}>── ATL 疲劳</span>
+          <span style={{ color: 'var(--wo-form)' }}>▪ TSB 状态</span>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={180}>
         <ComposedChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.08)" />
-          {phases.map((phase: TrainingPhase) => {
-            // Convert YYYY-MM-DD to the chart's MM/DD format
-            const fmtDate = (d: string) => d.slice(5).replace('-', '/');
-            return (
-              <ReferenceArea
-                key={phase.id}
-                x1={fmtDate(phase.start)} x2={fmtDate(phase.end)}
-                fill={PHASE_COLORS[phase.type]}
-                stroke={PHASE_STROKE[phase.type]}
-                strokeWidth={1}
-                strokeDasharray="4 2"
-                label={{ value: phase.label || (IS_CHINESE ? { strength:'力量',hypertrophy:'增肌',cut:'减脂',deload:'退量' }[phase.type] : phase.type), fontSize: 9, fill: PHASE_STROKE[phase.type], position: 'insideTop' }}
-              />
-            );
-          })}
+
           <XAxis
             dataKey="date"
             tick={{ fontSize: 9, opacity: 0.35 }}
@@ -131,15 +113,15 @@ const TrainingLoad = ({ workouts }: { workouts: WorkoutSession[] }) => {
           <ReferenceLine y={0} stroke="rgba(128,128,128,0.3)" />
           <Area
             dataKey="ctl"
-            stroke="#3b82f6"
-            fill="rgba(59,130,246,0.08)"
+            stroke="var(--wo-fitness)"
+            fill="rgba(96,165,250,0.08)"
             strokeWidth={2}
             dot={false}
           />
-          <Line dataKey="atl" stroke="#ef4444" strokeWidth={1.5} dot={false} />
+          <Line dataKey="atl" stroke="var(--wo-fatigue)" strokeWidth={1.5} dot={false} />
           <Bar
             dataKey="tsb"
-            fill="#22c55e"
+            fill="var(--wo-form)"
             isAnimationActive={false}
           />
         </ComposedChart>
@@ -149,17 +131,17 @@ const TrainingLoad = ({ workouts }: { workouts: WorkoutSession[] }) => {
           {
             label: IS_CHINESE ? '当前体能' : 'Fitness',
             val: data[data.length - 1]?.ctl ?? 0,
-            color: '#3b82f6',
+            color: 'var(--wo-fitness)',
           },
           {
             label: IS_CHINESE ? '当前疲劳' : 'Fatigue',
             val: data[data.length - 1]?.atl ?? 0,
-            color: '#ef4444',
+            color: 'var(--wo-fatigue)',
           },
           {
             label: IS_CHINESE ? '当前状态' : 'Form',
             val: data[data.length - 1]?.tsb ?? 0,
-            color: (data[data.length - 1]?.tsb ?? 0) >= 0 ? '#22c55e' : '#f97316',
+            color: (data[data.length - 1]?.tsb ?? 0) >= 0 ? 'var(--wo-form)' : 'var(--wo-warning)',
           },
         ].map((item) => (
           <div key={item.label} className="text-center">

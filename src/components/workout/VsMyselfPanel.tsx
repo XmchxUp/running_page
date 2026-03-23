@@ -109,11 +109,11 @@ export default function VsMyselfPanel({ workouts }: { workouts: WorkoutSession[]
 
       <div className="flex items-center gap-3 mb-4 text-xs">
         <div className="flex items-center gap-1.5">
-          <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--wc-l3)' }} />
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--wo-chart-a)' }} />
           <span className="opacity-60">{IS_CHINESE ? `近 ${period} 天` : `Last ${period}d`}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div style={{ width: 10, height: 10, borderRadius: 2, background: 'rgba(128,128,128,0.35)' }} />
+          <div style={{ width: 10, height: 10, borderRadius: 2, background: 'var(--wo-chart-b)' }} />
           <span className="opacity-60">{IS_CHINESE ? '去年同期' : 'Same period last year'}</span>
         </div>
       </div>
@@ -123,15 +123,15 @@ export default function VsMyselfPanel({ workouts }: { workouts: WorkoutSession[]
           const pct = pastVal > 0 ? Math.round(((nowVal - pastVal) / pastVal) * 100) : 0;
           const maxVal = Math.max(nowVal, pastVal, 0.01);
           const chartData = [
-            { name: IS_CHINESE ? '现在' : 'Now', value: nowVal, fill: 'var(--wc-l3)' },
-            { name: IS_CHINESE ? '去年' : 'Past', value: pastVal, fill: 'rgba(128,128,128,0.35)' },
+            { name: IS_CHINESE ? '现在' : 'Now', value: nowVal, fill: 'var(--wo-chart-a)' },
+            { name: IS_CHINESE ? '去年' : 'Past', value: pastVal, fill: 'var(--wo-chart-b)' },
           ];
           return (
             <div key={key}>
               <div className="flex items-center justify-between mb-1">
                 <span style={{ fontSize: 10, opacity: 0.5 }}>{label}</span>
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 11, fontWeight: 600, color: pct > 0 ? '#10b981' : pct < 0 ? '#ef4444' : undefined }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: pct > 0 ? 'var(--wo-positive)' : pct < 0 ? 'var(--wo-negative)' : undefined }}>
                     {pct > 0 ? `↑${pct}%` : pct < 0 ? `↓${Math.abs(pct)}%` : '—'}
                   </span>
                   <span style={{ fontSize: 11, opacity: 0.6 }}>{nowVal}{unit}</span>

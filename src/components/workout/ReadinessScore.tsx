@@ -100,11 +100,11 @@ const STATUS_LABELS = IS_CHINESE
   : { peak: 'Peak', good: 'Good', ok: 'Moderate', tired: 'Fatigued', rest: 'Rest' };
 
 function scoreToStatus(score: number) {
-  if (score >= 85) return { key: 'peak' as const, color: '#10b981' };
-  if (score >= 65) return { key: 'good' as const, color: '#34d399' };
-  if (score >= 45) return { key: 'ok'   as const, color: '#f59e0b' };
-  if (score >= 25) return { key: 'tired' as const, color: '#f97316' };
-  return { key: 'rest' as const, color: '#ef4444' };
+  if (score >= 85) return { key: 'peak' as const, color: 'var(--wo-form)' };
+  if (score >= 65) return { key: 'good' as const, color: 'var(--wo-positive)' };
+  if (score >= 45) return { key: 'ok'   as const, color: 'var(--wo-warning)' };
+  if (score >= 25) return { key: 'tired' as const, color: 'var(--wo-negative)' };
+  return { key: 'rest' as const, color: 'var(--wo-negative)' };
 }
 
 export default function ReadinessScore({ workouts }: { workouts: WorkoutSession[] }) {
@@ -182,7 +182,7 @@ export default function ReadinessScore({ workouts }: { workouts: WorkoutSession[
               <div className="rounded-full overflow-hidden" style={{ height: 4, background: 'rgba(128,128,128,0.12)' }}>
                 <div style={{
                   width: `${val}%`, height: '100%', borderRadius: 9999,
-                  background: val >= 70 ? '#10b981' : val >= 45 ? '#f59e0b' : '#ef4444',
+                  background: val >= 70 ? 'var(--wo-positive)' : val >= 45 ? 'var(--wo-warning)' : 'var(--wo-negative)',
                   transition: 'width 0.8s ease',
                 }} />
               </div>

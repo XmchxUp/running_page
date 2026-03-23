@@ -52,23 +52,10 @@ export const calcExerciseCoMatrix = (
   return { exercises: top, matrix };
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WILKS2 score (2020 coefficients)
-// ─────────────────────────────────────────────────────────────────────────────
-const WILKS_MALE    = [-216.0475144, 16.2606339, -0.002388645, -0.00113732, 7.01863e-6, -1.291e-8];
-const WILKS_FEMALE  = [594.31747775582, -27.23842536447, 0.82112226871, -0.00930733913, 0.00004731582, -0.00000009054];
-
-export const calcWILKS = (bodyweightKg: number, liftedKg: number, isMale: boolean): number => {
-  const c = isMale ? WILKS_MALE : WILKS_FEMALE;
-  const bw = bodyweightKg;
-  const denom = c[0] + c[1]*bw + c[2]*bw**2 + c[3]*bw**3 + c[4]*bw**4 + c[5]*bw**5;
-  if (denom === 0) return 0;
-  return Math.round((liftedKg * 500) / denom);
-};
 
 // Exercises where lower weight = stronger (assisted resistance helps less = harder)
 const ASSISTED_PATTERN = /assisted/i;
-const isAssisted = (name: string): boolean => ASSISTED_PATTERN.test(name);
+export const isAssisted = (name: string): boolean => ASSISTED_PATTERN.test(name);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // e1RM — Epley formula
@@ -138,16 +125,19 @@ export const buildExerciseHistory = (workouts: WorkoutSession[]): ExHistory => {
   [...workouts].sort((a, b) => a.start_time.localeCompare(b.start_time)).forEach((w) => {
     w.exercises.forEach((ex) => {
       if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
-      let bestE1rm = 0, bestWeight = 0, bestReps = 0, sessionVol = 0;
+      const assisted = isAssisted(ex.name);
+      // For assisted exercises, the "hardest" set has the LOWEST e1RM (least assistance used)
+      let bestE1rm = assisted ? Infinity : 0, bestWeight = 0, bestReps = 0, sessionVol = 0;
       ex.sets.forEach((s) => {
         if (!['normal', 'dropset', 'failure'].includes(s.type)) return;
         if (s.weight_kg && s.reps) {
           const e1rm = calcE1RM(s.weight_kg, s.reps);
           sessionVol += s.weight_kg * s.reps;
-          if (e1rm > bestE1rm) { bestE1rm = e1rm; bestWeight = s.weight_kg; bestReps = s.reps; }
+          const better = assisted ? e1rm < bestE1rm : e1rm > bestE1rm;
+          if (better) { bestE1rm = e1rm; bestWeight = s.weight_kg; bestReps = s.reps; }
         }
       });
-      if (bestE1rm > 0) {
+      if (bestE1rm > 0 && bestE1rm !== Infinity) {
         if (!history[ex.name]) history[ex.name] = [];
         history[ex.name].push({ date: w.start_time.slice(0, 10), e1rm: bestE1rm, weight: bestWeight, reps: bestReps, sessionVol });
       }
@@ -187,11 +177,16 @@ export const calcStagnation = (workouts: WorkoutSession[], threshold = 3) => {
   const result: Array<{ name: string; sessionsSincePR: number; bestE1rm: number; lastPRDate: string }> = [];
   for (const [name, sessions] of Object.entries(history)) {
     if (sessions.length < threshold) continue;
-    let runningMax = 0, lastPRIndex = -1;
-    sessions.forEach((s, i) => { if (s.e1rm > runningMax) { runningMax = s.e1rm; lastPRIndex = i; } });
+    const assisted = isAssisted(name);
+    // For assisted exercises, progress = lower e1RM (less assistance = harder)
+    let runningBest = assisted ? Infinity : 0, lastPRIndex = -1;
+    sessions.forEach((s, i) => {
+      const better = assisted ? s.e1rm < runningBest : s.e1rm > runningBest;
+      if (better) { runningBest = s.e1rm; lastPRIndex = i; }
+    });
     const sessionsSincePR = sessions.length - 1 - lastPRIndex;
     if (sessionsSincePR >= threshold)
-      result.push({ name, sessionsSincePR, bestE1rm: runningMax, lastPRDate: sessions[lastPRIndex].date });
+      result.push({ name, sessionsSincePR, bestE1rm: runningBest, lastPRDate: sessions[lastPRIndex].date });
   }
   return result.sort((a, b) => b.sessionsSincePR - a.sessionsSincePR);
 };
@@ -204,9 +199,13 @@ export const calcProgressiveOverload = (workouts: WorkoutSession[]) => {
   return Object.entries(history)
     .filter(([_, h]) => h.length >= 3)
     .map(([name, h]) => {
+      const assisted = isAssisted(name);
       const firstE1rm = h[0].e1rm, lastE1rm = h[h.length - 1].e1rm;
-      const pctChange = Math.round(((lastE1rm - firstE1rm) / firstE1rm) * 100);
-      return { name, firstE1rm, lastE1rm, pctChange, sessions: h.length };
+      const rawPct = Math.round(((lastE1rm - firstE1rm) / firstE1rm) * 100);
+      // For assisted exercises: lower e1rm over time = less assistance used = real progress
+      // Invert the sign so the UI correctly shows green for improvement
+      const pctChange = assisted ? -rawPct : rawPct;
+      return { name, firstE1rm, lastE1rm, pctChange, sessions: h.length, assisted };
     })
     .filter((x) => x.pctChange !== 0)
     .sort((a, b) => b.pctChange - a.pctChange);
@@ -221,15 +220,18 @@ export const buildPRTimeline = (workouts: WorkoutSession[]) => {
   [...workouts].sort((a, b) => a.start_time.localeCompare(b.start_time)).forEach((w) => {
     w.exercises.forEach((ex) => {
       if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
-      let bestE1rm = 0, bestWeight = 0, bestReps = 0;
+      const assisted = isAssisted(ex.name);
+      // For assisted: hardest set = lowest e1rm (least assistance used)
+      let bestE1rm = assisted ? Infinity : 0, bestWeight = 0, bestReps = 0;
       ex.sets.forEach((s) => {
         if (!['normal', 'dropset', 'failure'].includes(s.type)) return;
         if (s.weight_kg && s.reps) {
           const e1rm = calcE1RM(s.weight_kg, s.reps);
-          if (e1rm > bestE1rm) { bestE1rm = e1rm; bestWeight = s.weight_kg; bestReps = s.reps; }
+          const better = assisted ? e1rm < bestE1rm : e1rm > bestE1rm;
+          if (better) { bestE1rm = e1rm; bestWeight = s.weight_kg; bestReps = s.reps; }
         }
       });
-      if (bestE1rm > 0 && (isAssisted(ex.name) ? bestE1rm < (allTimeBest[ex.name] ?? Infinity) : bestE1rm > (allTimeBest[ex.name] ?? 0))) {
+      if (bestE1rm > 0 && bestE1rm !== Infinity && (assisted ? bestE1rm < (allTimeBest[ex.name] ?? Infinity) : bestE1rm > (allTimeBest[ex.name] ?? 0))) {
         events.push({ date: w.start_time.slice(0, 10), exercise: ex.name, e1rm: bestE1rm, weight: bestWeight, reps: bestReps, prevE1rm: allTimeBest[ex.name] ?? null });
         allTimeBest[ex.name] = bestE1rm;
       }

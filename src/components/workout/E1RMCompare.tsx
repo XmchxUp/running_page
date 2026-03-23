@@ -2,10 +2,14 @@ import { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { WorkoutSession } from '@/types/workout';
 import { translateExercise } from '@/utils/exerciseTranslations';
+import { isAssisted } from '@/utils/workoutCalcs';
 
 const IS_CHINESE = true;
 
-const LINE_COLORS = ['#6366f1','#ec4899','#f97316','#10b981','#3b82f6','#a855f7','#f59e0b','#06b6d4'];
+const LINE_COLORS = [
+  'var(--wo-series-1)', 'var(--wo-series-2)', 'var(--wo-series-3)', 'var(--wo-series-4)',
+  'var(--wo-series-5)', 'var(--wo-series-6)', 'var(--wo-series-7)', 'var(--wo-series-8)',
+];
 
 const calcE1RM = (weight: number, reps: number) => weight * (1 + reps / 30);
 
@@ -52,12 +56,18 @@ const E1RMCompare = ({ workouts }: { workouts: WorkoutSession[] }) => {
       const date = w.start_time.slice(0, 10);
       w.exercises.forEach((ex) => {
         if (!selected.includes(ex.name)) return;
+        const assisted = isAssisted(ex.name);
         ex.sets.forEach((s) => {
           if (!['normal','dropset','failure'].includes(s.type)) return;
           if (!s.weight_kg || !s.reps) return;
           const e1rm = Math.round(calcE1RM(s.weight_kg, s.reps));
           if (!byDate[date]) byDate[date] = {};
-          byDate[date][ex.name] = Math.max(byDate[date][ex.name] ?? 0, e1rm);
+          // For assisted exercises: lower e1RM = less assistance = harder = progress
+          if (assisted) {
+            byDate[date][ex.name] = Math.min(byDate[date][ex.name] ?? Infinity, e1rm);
+          } else {
+            byDate[date][ex.name] = Math.max(byDate[date][ex.name] ?? 0, e1rm);
+          }
         });
       });
     });
@@ -81,9 +91,9 @@ const E1RMCompare = ({ workouts }: { workouts: WorkoutSession[] }) => {
       </div>
       {/* Exercise selector chips */}
       <div className="flex flex-wrap gap-1.5 mb-4">
-        {topExercises.map((name, i) => {
+        {topExercises.map((name) => {
           const sel = selected.includes(name);
-          const color = LINE_COLORS[selected.indexOf(name) % LINE_COLORS.length] || '#6b7280';
+          const color = LINE_COLORS[selected.indexOf(name) % LINE_COLORS.length] || 'var(--wo-axis-text)';
           return (
             <button
               key={name}
