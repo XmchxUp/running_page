@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react';
 import type { WorkoutSession } from '@/types/workout';
 import { HEXA_AXES, getExerciseMuscles, type HexaKey } from '@/utils/workoutMuscles';
+import { WARMUP_NAMES, WORKING_SET_TYPES, toLocalDate } from '@/utils/workoutCalcs';
 import { IS_CHINESE } from './WorkoutUI';
 
 export const hexaVolumes = (workouts: WorkoutSession[]): Record<HexaKey, number> => {
   const vol: Record<string, number> = {};
   workouts.forEach((w) => {
     w.exercises.forEach((ex) => {
-      if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+      if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
       const muscles = getExerciseMuscles(ex.name);
-      const sets = ex.sets.filter((s) => ['normal', 'dropset', 'failure'].includes(s.type));
+      const sets = ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type));
       const v = sets.reduce((s, set) => s + (set.weight_kg ?? 0) * (set.reps ?? 0), 0);
       const contrib = v > 0 ? v : sets.length * 50;
       muscles.forEach((m) => { vol[m] = (vol[m] || 0) + contrib; });
@@ -28,8 +29,8 @@ const MuscleHexPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
     if (period === 'all') return { curr: workouts, prev: [] as WorkoutSession[] };
     const now = Date.now();
     const ms = period === 'week' ? 7 * 86400000 : 30 * 86400000;
-    const cutCurr = new Date(now - ms).toISOString().slice(0, 10);
-    const cutPrev = new Date(now - 2 * ms).toISOString().slice(0, 10);
+    const cutCurr = toLocalDate(new Date(now - ms));
+    const cutPrev = toLocalDate(new Date(now - 2 * ms));
     return {
       curr: workouts.filter((w) => w.start_time.slice(0, 10) >= cutCurr),
       prev: workouts.filter((w) => {

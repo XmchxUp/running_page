@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import type { WorkoutSession } from '@/types/workout';
-import { calcBestLifts, calcStreak, calcE1RM } from '@/utils/workoutCalcs';
+import { calcBestLifts, calcStreak, WARMUP_NAMES } from '@/utils/workoutCalcs';
 import { translateExercise } from '@/utils/exerciseTranslations';
 import { IS_CHINESE } from './WorkoutUI';
 
@@ -33,7 +33,7 @@ export default function WorkoutWrapped({ workouts, year, onClose }: Props) {
     // Top 3 exercises by sets
     const exFreq: Record<string, number> = {};
     yearWorkouts.forEach((w) =>
-      w.exercises.filter((e) => !['warm up', 'warmup'].includes(e.name.toLowerCase()))
+      w.exercises.filter((e) => !WARMUP_NAMES.has(e.name.toLowerCase()))
         .forEach((e) => { exFreq[e.name] = (exFreq[e.name] ?? 0) + e.sets.length; })
     );
     const top3 = Object.entries(exFreq).sort(([, a], [, b]) => b - a).slice(0, 3).map(([name]) => name);

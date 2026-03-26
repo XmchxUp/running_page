@@ -25,11 +25,13 @@ import {
   calcProgressiveOverload,
   buildPRTimeline,
   linearRegression,
-  calcExerciseCoMatrix,
-
   getExerciseStem,
   isAssisted,
+  WARMUP_NAMES,
+  WORKING_SET_TYPES,
+  toLocalDate,
 } from '@/utils/workoutCalcs';
+import type { ExHistory } from '@/utils/workoutCalcs';
 import {
   IS_CHINESE,
   TOOLTIP_STYLE,
@@ -55,11 +57,14 @@ import SpiralCalendar from '@/components/WorkoutCalendar/SpiralCalendar';
 import WorkoutWrapped from '@/components/workout/WorkoutWrapped';
 import ReadinessScore from '@/components/workout/ReadinessScore';
 import VolumeLandmarks from '@/components/workout/VolumeLandmarks';
-import StrengthStandards from '@/components/workout/StrengthStandards';
 
 import SessionAdvisor from '@/components/workout/SessionAdvisor';
 import FatigueCurve from '@/components/workout/FatigueCurve';
 import ExpandableCard from '@/components/workout/ExpandableCard';
+
+// Shared Recharts config — avoids repeating identical props across all charts
+const CHART_GRID = { strokeDasharray: '3 3', stroke: 'rgba(128,128,128,0.1)' } as const;
+const CHART_TICK = { fontSize: 8, fill: 'currentColor', opacity: 0.35 } as const;
 
 // =============================================================================
 // CHART COMPONENTS
@@ -123,9 +128,9 @@ const VolumeAndSetsChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
         <PanelLabel>{IS_CHINESE ? '每周总出力' : 'Weekly Volume'}</PanelLabel>
         <ResponsiveContainer width="100%" height={100}>
           <BarChart data={data} margin={{ top: 2, right: 2, left: -26, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
-            <XAxis dataKey="week" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} />
+            <CartesianGrid {...CHART_GRID} />
+            <XAxis dataKey="week" tick={CHART_TICK} interval="preserveStartEnd" />
+            <YAxis tick={CHART_TICK} />
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`${v.toLocaleString()} kg`, IS_CHINESE ? '出力' : 'Volume']} />
             <Bar dataKey="volume" fill="var(--wc-l3)" opacity={0.9} radius={[2, 2, 0, 0]} />
           </BarChart>
@@ -135,9 +140,9 @@ const VolumeAndSetsChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
         <PanelLabel>{IS_CHINESE ? '每周组数' : 'Weekly Sets'}</PanelLabel>
         <ResponsiveContainer width="100%" height={100}>
           <BarChart data={data} margin={{ top: 2, right: 2, left: -26, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
-            <XAxis dataKey="week" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} allowDecimals={false} />
+            <CartesianGrid {...CHART_GRID} />
+            <XAxis dataKey="week" tick={CHART_TICK} interval="preserveStartEnd" />
+            <YAxis tick={CHART_TICK} allowDecimals={false} />
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [v, IS_CHINESE ? '组' : 'Sets']} />
             <Bar dataKey="sets" fill="var(--wc-l2)" opacity={0.9} radius={[2, 2, 0, 0]} />
           </BarChart>
@@ -165,9 +170,9 @@ const SessionTrendsChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
         <PanelLabel>{IS_CHINESE ? '单次出力' : 'Vol / Session'}</PanelLabel>
         <ResponsiveContainer width="100%" height={100}>
           <LineChart data={data} margin={{ top: 4, right: 4, left: -26, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
-            <XAxis dataKey="date" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} />
+            <CartesianGrid {...CHART_GRID} />
+            <XAxis dataKey="date" tick={CHART_TICK} interval="preserveStartEnd" />
+            <YAxis tick={CHART_TICK} />
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`${v.toLocaleString()} kg`, '']} />
             <Line type="monotone" dataKey="volume" stroke="var(--wc-l3)" strokeWidth={1.5} dot={{ r: 2, fill: 'var(--wc-l3)', stroke: 'none' }} />
           </LineChart>
@@ -177,9 +182,9 @@ const SessionTrendsChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
         <PanelLabel>{IS_CHINESE ? '训练效率 kg/min' : 'Intensity'}</PanelLabel>
         <ResponsiveContainer width="100%" height={100}>
           <LineChart data={data} margin={{ top: 4, right: 4, left: -26, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
-            <XAxis dataKey="date" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} />
+            <CartesianGrid {...CHART_GRID} />
+            <XAxis dataKey="date" tick={CHART_TICK} interval="preserveStartEnd" />
+            <YAxis tick={CHART_TICK} />
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [`${v} kg/min`, '']} />
             <Line type="monotone" dataKey="intensity" stroke="var(--wc-l4)" strokeWidth={1.5} dot={{ r: 2, fill: 'var(--wc-l4)', stroke: 'none' }} />
           </LineChart>
@@ -204,7 +209,7 @@ const MonthlyFrequencyChart = ({ workouts }: { workouts: WorkoutSession[] }) => 
       <PanelLabel>{IS_CHINESE ? '月度频率' : 'Monthly Frequency'}</PanelLabel>
       <ResponsiveContainer width="100%" height={88}>
         <BarChart data={data} margin={{ top: 0, right: 2, left: -22, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
+          <CartesianGrid {...CHART_GRID} />
           <XAxis dataKey="label" tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.35 }} />
           <YAxis tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.35 }} allowDecimals={false} />
           <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [v, IS_CHINESE ? '次' : 'Sessions']} />
@@ -252,9 +257,9 @@ const TimeDistributionCharts = ({ workouts }: { workouts: WorkoutSession[] }) =>
         <PanelLabel>{IS_CHINESE ? '星期分布' : 'Weekday'}</PanelLabel>
         <ResponsiveContainer width="100%" height={100}>
           <BarChart data={weekData} margin={{ top: 2, right: 2, left: -26, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
-            <XAxis dataKey="label" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} />
-            <YAxis tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} allowDecimals={false} />
+            <CartesianGrid {...CHART_GRID} />
+            <XAxis dataKey="label" tick={CHART_TICK} />
+            <YAxis tick={CHART_TICK} allowDecimals={false} />
             <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [v, IS_CHINESE ? '次' : 'Sessions']} />
             <Bar dataKey="count" fill="var(--wc-l3)" opacity={0.9} radius={[2, 2, 0, 0]} />
           </BarChart>
@@ -264,9 +269,9 @@ const TimeDistributionCharts = ({ workouts }: { workouts: WorkoutSession[] }) =>
         <PanelLabel>{IS_CHINESE ? '时段偏好' : 'Time of Day'}</PanelLabel>
         <ResponsiveContainer width="100%" height={100}>
           <ComposedChart data={timeData} margin={{ top: 4, right: 18, left: -26, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
-            <XAxis dataKey="label" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} />
-            <YAxis yAxisId="l" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} allowDecimals={false} />
+            <CartesianGrid {...CHART_GRID} />
+            <XAxis dataKey="label" tick={CHART_TICK} />
+            <YAxis yAxisId="l" tick={CHART_TICK} allowDecimals={false} />
             <YAxis yAxisId="r" orientation="right" tick={false} axisLine={false} />
             <Tooltip contentStyle={TOOLTIP_STYLE}
               formatter={(v: number, name: string) => [
@@ -316,7 +321,7 @@ const WorkoutTypeChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
       <PanelLabel>{IS_CHINESE ? '训练类型' : 'Workout Types'}</PanelLabel>
       <ResponsiveContainer width="100%" height={Math.max(80, Math.min(data.length * 22, 150))}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 20, left: 40, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" horizontal={false} />
+          <CartesianGrid {...CHART_GRID} horizontal={false} />
           <XAxis type="number" tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.35 }} allowDecimals={false} />
           <YAxis type="category" dataKey="label" tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.6 }} width={40} />
           <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => [v, IS_CHINESE ? '次' : 'Sessions']} />
@@ -333,10 +338,10 @@ const MuscleVolumeChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
     const vol: Record<string, number> = {};
     workouts.forEach((w) => {
       w.exercises.forEach((ex) => {
-        if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+        if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
         const muscles = getExerciseMuscles(ex.name);
         if (!muscles.length) return;
-        const sets = ex.sets.filter((s) => ['normal', 'dropset', 'failure'].includes(s.type));
+        const sets = ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type));
         const v = sets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0);
         const contrib = v > 0 ? v : sets.length * 50;
         muscles.forEach((m) => { vol[m] = (vol[m] || 0) + contrib; });
@@ -357,7 +362,7 @@ const MuscleVolumeChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
       <PanelLabel>{IS_CHINESE ? '肌群训练量 (百 kg)' : 'Volume by Muscle (×100 kg)'}</PanelLabel>
       <ResponsiveContainer width="100%" height={Math.max(100, data.length * 23)}>
         <BarChart data={data} layout="vertical" margin={{ top: 0, right: 28, left: 36, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" horizontal={false} />
+          <CartesianGrid {...CHART_GRID} horizontal={false} />
           <XAxis type="number" tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.4 }} />
           <YAxis type="category" dataKey="label" tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.7 }} width={40} />
           <Tooltip contentStyle={TOOLTIP_STYLE}
@@ -377,12 +382,15 @@ const MuscleVolumeChart = ({ workouts }: { workouts: WorkoutSession[] }) => {
 const WeeklyGoalWidget = ({ workouts, goal }: { workouts: WorkoutSession[]; goal: number }) => {
   const count = useMemo(() => {
     const now = new Date();
-    const dayOfWeek = (now.getDay() + 6) % 7;
+    const dayOfWeek = (now.getDay() + 6) % 7; // 0=Mon … 6=Sun
+    const toLocal = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const monday = new Date(now);
     monday.setDate(now.getDate() - dayOfWeek);
-    monday.setHours(0, 0, 0, 0);
-    const mondayStr = monday.toISOString().slice(0, 10);
-    const sundayStr = new Date(monday.getTime() + 6 * 86400000).toISOString().slice(0, 10);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const mondayStr = toLocal(monday);
+    const sundayStr = toLocal(sunday);
     return workouts.filter((w) => { const d = w.start_time.slice(0, 10); return d >= mondayStr && d <= sundayStr; }).length;
   }, [workouts]);
   const done = count >= goal;
@@ -416,9 +424,9 @@ const RepRangePanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
     let strength = 0, hypertrophy = 0, endurance = 0;
     workouts.forEach((w) => {
       w.exercises.forEach((ex) => {
-        if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+        if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
         ex.sets.forEach((s) => {
-          if (!['normal', 'dropset', 'failure'].includes(s.type) || s.reps === undefined) return;
+          if (!WORKING_SET_TYPES.has(s.type) || s.reps === undefined) return;
           if (s.reps <= 5) strength++;
           else if (s.reps <= 12) hypertrophy++;
           else endurance++;
@@ -528,8 +536,8 @@ const TopSessionsPanel = ({ workouts, scoreMap }: { workouts: WorkoutSession[]; 
 };
 
 // Stagnation alerts
-const StagnationPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
-  const alerts = useMemo(() => calcStagnation(workouts, 3), [workouts]);
+const StagnationPanel = ({ workouts, history }: { workouts: WorkoutSession[]; history?: ExHistory }) => {
+  const alerts = useMemo(() => calcStagnation(workouts, 3, history), [workouts, history]);
   if (alerts.length === 0) return null;
   return (
     <div>
@@ -553,8 +561,8 @@ const StagnationPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
 };
 
 // Progressive overload
-const ProgressiveOverloadPanel = ({ workouts }: { workouts: WorkoutSession[] }) => {
-  const overloads = useMemo(() => calcProgressiveOverload(workouts), [workouts]);
+const ProgressiveOverloadPanel = ({ workouts, history }: { workouts: WorkoutSession[]; history?: ExHistory }) => {
+  const overloads = useMemo(() => calcProgressiveOverload(workouts, history), [workouts, history]);
   if (overloads.length === 0) return null;
   return (
     <div>
@@ -640,11 +648,11 @@ const NextSessionGuide = ({ workouts }: { workouts: WorkoutSession[] }) => {
 
   // Status thresholds
   const status = (days: number | null) =>
-    days === null      ? { text: '未記錄', color: '#ff4400', badge: '★★★' } :
-    days >= 5          ? { text: `${days}d 已恢復`, color: '#ff6b00', badge: '★★★' } :
-    days >= 3          ? { text: `${days}d 可訓練`, color: '#ffcc00', badge: '★★' } :
-    days >= 1          ? { text: `${days}d 稍候`,   color: 'rgba(255,255,255,0.3)', badge: '·' } :
-                         { text: '今天已練',          color: 'rgba(255,255,255,0.2)', badge: '·' };
+    days === null ? { text: IS_CHINESE ? '未记录' : 'No data',                         color: '#ff4400',              badge: '★★★' } :
+    days >= 5     ? { text: IS_CHINESE ? `${days}d 已恢复` : `${days}d rested`,         color: '#ff6b00',              badge: '★★★' } :
+    days >= 3     ? { text: IS_CHINESE ? `${days}d 可训练` : `${days}d ready`,          color: '#ffcc00',              badge: '★★'  } :
+    days >= 1     ? { text: IS_CHINESE ? `${days}d 稍候`  : `${days}d soon`,           color: 'rgba(255,255,255,0.3)', badge: '·'   } :
+                    { text: IS_CHINESE ? '今日已练'        : 'Done today',              color: 'rgba(255,255,255,0.2)', badge: '·'   };
 
   return (
     <div style={{
@@ -670,9 +678,11 @@ const NextSessionGuide = ({ workouts }: { workouts: WorkoutSession[] }) => {
           background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent)',
           animation: 'shimmer 3.5s ease-in-out infinite',
         }} />
-        <span style={{ fontSize: 15, fontWeight: 900, color: '#3d1a00', letterSpacing: '0.05em' }}>今日推介</span>
+        <span style={{ fontSize: 15, fontWeight: 900, color: '#3d1a00', letterSpacing: '0.05em' }}>
+          {IS_CHINESE ? '今日推介' : "TODAY'S PICK"}
+        </span>
         <span style={{ fontSize: 10, fontWeight: 700, color: '#3d1a00', letterSpacing: '0.25em', opacity: 0.8 }}>
-          TODAY'S PICK
+          {IS_CHINESE ? "TODAY'S PICK" : 'NEXT SESSION'}
         </span>
       </div>
 
@@ -715,7 +725,7 @@ const NextSessionGuide = ({ workouts }: { workouts: WorkoutSession[] }) => {
         letterSpacing: '0.25em',
         textAlign: 'center',
       }}>
-        ★ 基於肌肉恢復狀況推薦 · RECOVERY-BASED SUGGESTION ★
+        {IS_CHINESE ? '★ 基于肌肉恢复状况推荐 · RECOVERY-BASED SUGGESTION ★' : '★ RECOVERY-BASED SUGGESTION ★'}
       </div>
     </div>
   );
@@ -766,7 +776,7 @@ const ExerciseProgress = ({ name, workouts, onClose }: { name: string; workouts:
       if (!ex) return;
       // For assisted: hardest set = lowest e1rm (least assistance used)
       let bestE1rm = assisted ? Infinity : 0, bestWeight = 0, bestReps = 0, sessionVol = 0;
-      ex.sets.filter((s) => ['normal', 'dropset', 'failure'].includes(s.type)).forEach((s) => {
+      ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type)).forEach((s) => {
         if ((s.weight_kg ?? 0) > 0 && s.reps !== undefined) {
           sessionVol += s.weight_kg! * s.reps;
           const e1rm = calcE1RM(s.weight_kg!, s.reps);
@@ -817,7 +827,7 @@ const ExerciseProgress = ({ name, workouts, onClose }: { name: string; workouts:
       const futureX = (futureDate.getTime() - t0) / 86400000;
       const predVal = Math.round((slope * futureX + intercept) * 10) / 10;
       if (predVal > 0) predPoints.push({
-        date: futureDate.toISOString().slice(0, 10),
+        date: toLocalDate(futureDate),
         e1rm: undefined, weight: undefined, reps: undefined, sessionVol: undefined,
         predicted: predVal,
       });
@@ -849,13 +859,13 @@ const ExerciseProgress = ({ name, workouts, onClose }: { name: string; workouts:
         <>
           <ResponsiveContainer width="100%" height={140}>
             <LineChart data={chartData} margin={{ top: 4, right: 38, left: -28, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
-              <XAxis dataKey="date" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.35 }} interval="preserveStartEnd" />
+              <CartesianGrid {...CHART_GRID} />
+              <XAxis dataKey="date" tick={CHART_TICK} interval="preserveStartEnd" />
               <YAxis yAxisId="e" tick={{ fontSize: 9, fill: 'currentColor', opacity: 0.35 }} unit="kg" />
               <YAxis yAxisId="v" orientation="right" tick={{ fontSize: 8, fill: 'currentColor', opacity: 0.25 }} />
               <Tooltip contentStyle={TOOLTIP_STYLE}
-                formatter={(v: number, key: string, props: any) => {
-                  if (key === 'e1rm') return [`e1RM ${v} kg (${props.payload.weight}×${props.payload.reps})`, IS_CHINESE ? '估算最大' : 'Est. 1RM'];
+                formatter={(v: number, key: string, props: { payload?: { weight?: number; reps?: number } }) => {
+                  if (key === 'e1rm') return [`e1RM ${v} kg (${props.payload?.weight}×${props.payload?.reps})`, IS_CHINESE ? '估算最大' : 'Est. 1RM'];
                   if (key === 'predicted') return [`${v} kg`, IS_CHINESE ? '预测 e1RM' : 'Predicted e1RM'];
                   return [`${v.toLocaleString()} kg`, IS_CHINESE ? '单次出力' : 'Session Vol'];
                 }}
@@ -949,10 +959,10 @@ const MuscleBodyMap = ({ workouts }: { workouts: WorkoutSession[] }) => {
     const vol: Record<string, number> = {};
     workouts.forEach((w) => {
       w.exercises.forEach((ex) => {
-        if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+        if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
         const muscles = getExerciseMuscles(ex.name);
         if (muscles.length === 0) return;
-        const sets = ex.sets.filter((s) => ['normal', 'dropset', 'failure'].includes(s.type));
+        const sets = ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type));
         const v = sets.reduce((sum, s) => sum + (s.weight_kg ?? 0) * (s.reps ?? 0), 0);
         const contribution = v > 0 ? v : sets.length * 50;
         muscles.forEach((m) => { vol[m] = (vol[m] || 0) + contribution; });
@@ -1115,8 +1125,10 @@ const MuscleBodyMap = ({ workouts }: { workouts: WorkoutSession[] }) => {
             <div className="text-center mb-1" style={{ fontSize: 10, opacity: 0.3 }}>{IS_CHINESE ? '背面' : 'Back'}</div>
             <div style={{ maxWidth: 140, margin: '0 auto' }}><BodySVG front={false} /></div>
           </div>
-          {/* Spacer to maintain height */}
-          <div style={{ visibility: 'hidden', maxWidth: 140, margin: '0 auto' }}><BodySVG front={true} /></div>
+          {/* Spacer: uses SVG aspect ratio (viewBox 90×175) to maintain flip card height */}
+          <div style={{ maxWidth: 140, margin: '0 auto' }}>
+            <div style={{ paddingBottom: `${(175 / 90 * 100).toFixed(1)}%` }} />
+          </div>
         </div>
       </div>
 
@@ -1368,7 +1380,7 @@ const WorkoutsPage = () => {
   const { workouts, years, thisYear } = useWorkouts();
   const { theme } = useTheme();
   const [year, setYear] = useState(thisYear);
-  const [weeklyGoal] = useState(4);
+  const weeklyGoal = 4;
   const [highlightDate, setHighlightDate] = useState<string | undefined>();
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
 
@@ -1395,7 +1407,7 @@ const WorkoutsPage = () => {
     const { current: streakCurrent, longest: streakLongest } = calcStreak(filteredWorkouts);
     const exerciseFreq: Record<string, number> = {};
     filteredWorkouts.forEach((w) =>
-      w.exercises.filter((ex) => !['warm up', 'warmup'].includes(ex.name.toLowerCase()))
+      w.exercises.filter((ex) => !WARMUP_NAMES.has(ex.name.toLowerCase()))
         .forEach((ex) => { exerciseFreq[ex.name] = (exerciseFreq[ex.name] || 0) + ex.sets.length; })
     );
     const topExercises = Object.entries(exerciseFreq).sort((a, b) => b[1] - a[1]).slice(0, 10);
@@ -1431,6 +1443,10 @@ const WorkoutsPage = () => {
   const trendPct = useCallback((curr: number, prev?: number) =>
     prev && prev > 0 ? Math.round(((curr - prev) / prev) * 100) : undefined, []);
 
+  // Pre-compute exercise history once — shared by StagnationPanel and ProgressiveOverloadPanel
+  // to avoid building it twice from the same filtered data
+  const exerciseHistory = useMemo(() => buildExerciseHistory(filteredWorkouts), [filteredWorkouts]);
+
   const scoreMap = useMemo(() => calcSessionScores(filteredWorkouts), [filteredWorkouts]);
   const doubleSessionDates = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -1445,8 +1461,16 @@ const WorkoutsPage = () => {
     setSelectedExercise((prev) => prev === name ? null : name);
   }, []);
 
-  // Section collapse state — default all expanded
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  // Section collapse state — persisted in localStorage
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('wo-section-collapsed');
+      return saved ? (JSON.parse(saved) as Record<string, boolean>) : {};
+    } catch { return {}; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('wo-section-collapsed', JSON.stringify(collapsed)); } catch {}
+  }, [collapsed]);
   const toggleSection = useCallback((key: string) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
   }, []);
@@ -1458,19 +1482,21 @@ const WorkoutsPage = () => {
     const sorted = [...workouts].sort((a, b) => b.start_time.localeCompare(a.start_time));
     const latestDate = sorted[0].start_time.slice(0, 10);
     // Only show if latest session is within 1 day from today
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toLocalDate(new Date());
     const daysDiff = Math.round((new Date(today).getTime() - new Date(latestDate).getTime()) / 86400000);
     if (daysDiff > 1) return [];
     const latestSessions = sorted.filter((w) => w.start_time.slice(0, 10) === latestDate);
     const historicalSessions = workouts.filter((w) => w.start_time.slice(0, 10) < latestDate);
-    // Build all-time best before today
+    // Build all-time best before today (handles assisted exercises correctly)
     const prevBest: Record<string, number> = {};
     historicalSessions.forEach((w) => {
       w.exercises.forEach((ex) => {
+        const assisted = isAssisted(ex.name);
         ex.sets.forEach((s) => {
-          if (['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps) {
+          if (WORKING_SET_TYPES.has(s.type) && s.weight_kg && s.reps) {
             const e1rm = calcE1RM(s.weight_kg, s.reps);
-            if (e1rm > (prevBest[ex.name] ?? 0)) prevBest[ex.name] = e1rm;
+            const better = assisted ? e1rm < (prevBest[ex.name] ?? Infinity) : e1rm > (prevBest[ex.name] ?? 0);
+            if (better) prevBest[ex.name] = e1rm;
           }
         });
       });
@@ -1478,15 +1504,19 @@ const WorkoutsPage = () => {
     const newPRs: Array<{ exercise: string; e1rm: number; weight: number; reps: number }> = [];
     latestSessions.forEach((w) => {
       w.exercises.forEach((ex) => {
-        let bestE1rm = 0, bestWeight = 0, bestReps = 0;
+        const assisted = isAssisted(ex.name);
+        let bestE1rm = assisted ? Infinity : 0, bestWeight = 0, bestReps = 0;
         ex.sets.forEach((s) => {
-          if (['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps) {
+          if (WORKING_SET_TYPES.has(s.type) && s.weight_kg && s.reps) {
             const e1rm = calcE1RM(s.weight_kg, s.reps);
-            if (e1rm > bestE1rm) { bestE1rm = e1rm; bestWeight = s.weight_kg; bestReps = s.reps; }
+            const better = assisted ? e1rm < bestE1rm : e1rm > bestE1rm;
+            if (better) { bestE1rm = e1rm; bestWeight = s.weight_kg; bestReps = s.reps; }
           }
         });
-        if (bestE1rm > (prevBest[ex.name] ?? 0)) {
-          newPRs.push({ exercise: ex.name, e1rm: bestE1rm, weight: bestWeight, reps: bestReps });
+        if (bestE1rm !== (assisted ? Infinity : 0)) {
+          const prevBestForEx = prevBest[ex.name] ?? (assisted ? Infinity : 0);
+          const isNewPR = assisted ? bestE1rm < prevBestForEx : bestE1rm > prevBestForEx;
+          if (isNewPR) newPRs.push({ exercise: ex.name, e1rm: bestE1rm, weight: bestWeight, reps: bestReps });
         }
       });
     });
@@ -1606,7 +1636,7 @@ const WorkoutsPage = () => {
               <NextSessionGuide workouts={filteredWorkouts} />
               <ExpandableCard title={IS_CHINESE ? '今日训练建议' : 'Session Advisor'}><SessionAdvisor workouts={filteredWorkouts} /></ExpandableCard>
               <ExpandableCard title={IS_CHINESE ? '里程碑' : 'Milestones'}><MilestoneCards workouts={filteredWorkouts} /></ExpandableCard>
-              <ExpandableCard title={IS_CHINESE ? '停滞预警' : 'Stagnation'}><StagnationPanel workouts={filteredWorkouts} /></ExpandableCard>
+              <ExpandableCard title={IS_CHINESE ? '停滞预警' : 'Stagnation'}><StagnationPanel workouts={filteredWorkouts} history={exerciseHistory} /></ExpandableCard>
               <ExpandableCard title={IS_CHINESE ? '恢复节律' : 'Recovery Rhythm'}><RecoveryRhythm workouts={workouts} /></ExpandableCard>
             </div>
 
@@ -1655,8 +1685,6 @@ const WorkoutsPage = () => {
           </div>
 
           <div className="columns-1 md:columns-2" style={{ columnGap: 16, marginBottom: 16 }}>
-            <div className="break-inside-avoid mb-4">
-            </div>
             <div className="break-inside-avoid mb-4">
               <ExpandableCard title={IS_CHINESE ? '组内疲劳曲线' : 'Intra-Session Fatigue'}><FatigueCurve workouts={filteredWorkouts} /></ExpandableCard>
             </div>
@@ -1770,7 +1798,7 @@ const WorkoutsPage = () => {
             </div>
 
             <div className="break-inside-avoid mb-5">
-              <ExpandableCard title={IS_CHINESE ? '渐进超负荷' : 'Progressive Overload'}><ProgressiveOverloadPanel workouts={filteredWorkouts} /></ExpandableCard>
+              <ExpandableCard title={IS_CHINESE ? '渐进超负荷' : 'Progressive Overload'}><ProgressiveOverloadPanel workouts={filteredWorkouts} history={exerciseHistory} /></ExpandableCard>
             </div>
 
             <div className="break-inside-avoid mb-5">
@@ -1778,15 +1806,9 @@ const WorkoutsPage = () => {
             </div>
 
             <div className="break-inside-avoid mb-5">
-            </div>
-
-            <div className="break-inside-avoid mb-5">
               <ExpandableCard title={IS_CHINESE ? '训练量临界点' : 'Volume Landmarks'}><VolumeLandmarks workouts={filteredWorkouts} /></ExpandableCard>
             </div>
 
-            <div className="break-inside-avoid mb-5">
-              <ExpandableCard title={IS_CHINESE ? '力量对标' : 'Strength Standards'}><StrengthStandards workouts={filteredWorkouts} /></ExpandableCard>
-            </div>
 
             <div className="break-inside-avoid mb-5">
               <ExpandableCard title={IS_CHINESE ? '动作共现矩阵' : 'Exercise Co-Matrix'}><ExerciseCoMatrix workouts={filteredWorkouts} /></ExpandableCard>

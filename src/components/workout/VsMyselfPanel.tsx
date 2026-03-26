@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import type { WorkoutSession } from '@/types/workout';
-import { calcE1RM } from '@/utils/workoutCalcs';
+import { calcE1RM, WORKING_SET_TYPES, toLocalDate } from '@/utils/workoutCalcs';
 import { IS_CHINESE, PanelLabel, TOOLTIP_STYLE } from './WorkoutUI';
 
 type Period = 30 | 60 | 90;
@@ -11,13 +11,13 @@ const PERIODS: Period[] = [30, 60, 90];
 const getRange = (daysBack: number) => {
   const end = new Date();
   const start = new Date(end.getTime() - daysBack * 86400000);
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  return { start: toLocalDate(start), end: toLocalDate(end) };
 };
 
 const getLastYearRange = (daysBack: number) => {
   const end = new Date(Date.now() - 365 * 86400000);
   const start = new Date(end.getTime() - daysBack * 86400000);
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  return { start: toLocalDate(start), end: toLocalDate(end) };
 };
 
 const periodStats = (sessions: WorkoutSession[]) => {
@@ -28,7 +28,7 @@ const periodStats = (sessions: WorkoutSession[]) => {
   sessions.forEach((w) => {
     w.exercises.forEach((ex) => {
       ex.sets.forEach((s) => {
-        if (['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps) {
+        if (WORKING_SET_TYPES.has(s.type) && s.weight_kg && s.reps) {
           const e1rm = calcE1RM(s.weight_kg, s.reps);
           if (e1rm > maxE1rm) maxE1rm = e1rm;
         }

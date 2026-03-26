@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { WorkoutSession } from '@/types/workout';
-import { calcE1RM } from '@/utils/workoutCalcs';
+import { calcE1RM, WARMUP_NAMES, WORKING_SET_TYPES, toLocalDate } from '@/utils/workoutCalcs';
 import { getExerciseMuscles, PUSH_MUSCLES, PULL_MUSCLES, LEGS_MUSCLES } from '@/utils/workoutMuscles';
 import { translateExercise } from '@/utils/exerciseTranslations';
 import { IS_CHINESE } from './WorkoutUI';
@@ -18,7 +18,7 @@ function calcCurrentTSB(workouts: WorkoutSession[]): number {
   const now = new Date();
   for (let i = 89; i >= 0; i--) {
     const d = new Date(now); d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = toLocalDate(d);
     const vol = volMap[key] ?? 0;
     atl = atl * (1 - k7) + vol * k7;
     ctl = ctl * (1 - k42) + vol * k42;
@@ -26,24 +26,31 @@ function calcCurrentTSB(workouts: WorkoutSession[]): number {
   return Math.round(ctl - atl);
 }
 
-// Reuse muscle recovery calc (simplified)
+// Muscle recovery: sets + exponential time decay (same model as MuscleRecovery.tsx)
+const _recoveryHoursFromSets = (sets: number): number =>
+  sets >= 12 ? 72 : sets >= 8 ? 60 : sets >= 4 ? 48 : 36;
+
 function getMuscleRecoveryPct(workouts: WorkoutSession[], muscle: string): number {
-  const sessions: Array<{ vol: number; hoursAgo: number }> = [];
   const now = Date.now();
-  workouts.forEach((w) => {
-    const exs = w.exercises.filter((e) => getExerciseMuscles(e.name).includes(muscle));
-    if (!exs.length) return;
-    let vol = 0;
-    exs.forEach((e) => e.sets.forEach((s) => {
-      if (['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps)
-        vol += s.weight_kg * s.reps;
-    }));
-    if (vol > 0) sessions.push({ vol, hoursAgo: (now - new Date(w.start_time).getTime()) / 3600000 });
-  });
-  if (!sessions.length) return 100;
-  const latest = sessions.sort((a, b) => a.hoursAgo - b.hoursAgo)[0];
-  const rH = latest.vol > 5000 ? 72 : latest.vol > 2000 ? 60 : 48;
-  return Math.min(100, (latest.hoursAgo / rH) * 100);
+  const sorted = [...workouts]
+    .filter((w) => w.exercises.some((ex) => getExerciseMuscles(ex.name).includes(muscle)))
+    .sort((a, b) => b.start_time.localeCompare(a.start_time));
+  if (!sorted.length) return 100;
+  const hoursAgo = (now - new Date(sorted[0].start_time).getTime()) / 3600000;
+  let effectiveSets = 0;
+  for (const w of sorted) {
+    const sessionHoursAgo = (now - new Date(w.start_time).getTime()) / 3600000;
+    if (sessionHoursAgo > 96) break;
+    const decayFactor = Math.pow(0.5, sessionHoursAgo / 24);
+    let sessionSets = 0;
+    w.exercises.forEach((ex) => {
+      if (getExerciseMuscles(ex.name).includes(muscle))
+        sessionSets += ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type)).length;
+    });
+    effectiveSets += sessionSets * decayFactor;
+  }
+  const rH = _recoveryHoursFromSets(Math.round(effectiveSets));
+  return Math.min(100, Math.round((hoursAgo / rH) * 100));
 }
 
 type SplitType = 'push' | 'pull' | 'legs' | 'full';
@@ -82,12 +89,12 @@ function buildRecommendations(workouts: WorkoutSession[], split: SplitType, tsb:
 
   sorted.forEach((w) => {
     w.exercises.forEach((ex) => {
-      if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+      if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
       const muscles = getExerciseMuscles(ex.name);
       if (!splitMuscles.some((m) => muscles.includes(m))) return;
 
       let bestE1rm = 0, bestW = 0, bestR = 0;
-      const normalSets = ex.sets.filter((s) => ['normal', 'dropset', 'failure'].includes(s.type));
+      const normalSets = ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type));
       normalSets.forEach((s) => {
         if (s.weight_kg && s.reps) {
           const e1rm = calcE1RM(s.weight_kg, s.reps);

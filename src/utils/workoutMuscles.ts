@@ -3,15 +3,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const MUSCLE_PATTERNS: Array<{ muscle: string; patterns: string[] }> = [
-  { muscle: 'chest',      patterns: ['bench press','chest fly','pec deck','cable crossover','push up','pushup','俯卧撑','chest press','chest dip','incline press','decline press'] },
+  { muscle: 'chest',      patterns: ['bench press','chest fly','pec deck','cable crossover','crossover','push up','pushup','俯卧撑','chest press','chest dip','incline press','decline press'] },
   { muscle: 'back',       patterns: ['row','lat pulldown','lat pull','pull up','chin up','pullup','deadlift','face pull','pullover'] },
-  { muscle: 'shoulders',  patterns: ['shoulder press','lateral raise','front raise','arnold press','overhead press','upright row','shrug','military press'] },
+  { muscle: 'shoulders',  patterns: ['shoulder press','lateral raise','front raise','arnold press','overhead press','upright row','shrug','military press','rear delt','reverse fly','face pull'] },
   { muscle: 'biceps',     patterns: ['bicep curl','biceps curl','hammer curl','preacher curl','concentration curl','barbell curl','ez bar bicep'] },
-  { muscle: 'triceps',    patterns: ['tricep','pushdown','skull crusher','close grip','bench dip','overhead ext','rope push'] },
-  { muscle: 'abs',        patterns: ['crunch','plank','leg raise','sit up','ab wheel','hanging leg','lying leg raise'] },
+  { muscle: 'triceps',    patterns: ['tricep','pushdown','skull crusher','skullcrusher','close grip','bench dip','overhead ext','rope push'] },
+  { muscle: 'abs',        patterns: ['crunch','plank','leg raise','sit up','ab wheel','hanging leg','lying leg raise','torso rotation','rotation','russian twist','woodchop'] },
   { muscle: 'quads',      patterns: ['squat','leg press','leg extension','lunge','hack squat','step up'] },
   { muscle: 'hamstrings', patterns: ['leg curl','romanian','rdl','nordic','hamstring'] },
-  { muscle: 'glutes',     patterns: ['hip thrust','glute bridge','hip extension','臀'] },
+  { muscle: 'glutes',     patterns: ['hip thrust','glute bridge','hip extension','hip abduction','abduction','臀'] },
   { muscle: 'calves',     patterns: ['calf raise','seated calf'] },
 ];
 

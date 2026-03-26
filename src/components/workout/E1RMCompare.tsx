@@ -1,17 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { WorkoutSession } from '@/types/workout';
 import { translateExercise } from '@/utils/exerciseTranslations';
-import { isAssisted } from '@/utils/workoutCalcs';
-
-const IS_CHINESE = true;
+import { isAssisted, calcE1RM, WARMUP_NAMES, WORKING_SET_TYPES } from '@/utils/workoutCalcs';
+import { IS_CHINESE } from './WorkoutUI';
 
 const LINE_COLORS = [
   'var(--wo-series-1)', 'var(--wo-series-2)', 'var(--wo-series-3)', 'var(--wo-series-4)',
   'var(--wo-series-5)', 'var(--wo-series-6)', 'var(--wo-series-7)', 'var(--wo-series-8)',
 ];
-
-const calcE1RM = (weight: number, reps: number) => weight * (1 + reps / 30);
 
 const TOOLTIP_STYLE: React.CSSProperties = {
   background: 'var(--wo-card-bg)',
@@ -26,8 +23,8 @@ const E1RMCompare = ({ workouts }: { workouts: WorkoutSession[] }) => {
     const freq: Record<string, number> = {};
     workouts.forEach((w) => {
       w.exercises.forEach((ex) => {
-        if (['warm up','warmup'].includes(ex.name.toLowerCase())) return;
-        const hasSets = ex.sets.some((s) => ['normal','dropset','failure'].includes(s.type) && s.weight_kg && s.weight_kg > 0);
+        if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
+        const hasSets = ex.sets.some((s) => WORKING_SET_TYPES.has(s.type) && s.weight_kg && s.weight_kg > 0);
         if (!hasSets) return;
         freq[ex.name] = (freq[ex.name] || 0) + 1;
       });
@@ -38,7 +35,7 @@ const E1RMCompare = ({ workouts }: { workouts: WorkoutSession[] }) => {
   const [selected, setSelected] = useState<string[]>(() => topExercises.slice(0, 3));
 
   // Update selected when topExercises changes
-  useMemo(() => {
+  useEffect(() => {
     setSelected(topExercises.slice(0, 3));
   }, [topExercises]);
 
@@ -58,7 +55,7 @@ const E1RMCompare = ({ workouts }: { workouts: WorkoutSession[] }) => {
         if (!selected.includes(ex.name)) return;
         const assisted = isAssisted(ex.name);
         ex.sets.forEach((s) => {
-          if (!['normal','dropset','failure'].includes(s.type)) return;
+          if (!WORKING_SET_TYPES.has(s.type)) return;
           if (!s.weight_kg || !s.reps) return;
           const e1rm = Math.round(calcE1RM(s.weight_kg, s.reps));
           if (!byDate[date]) byDate[date] = {};

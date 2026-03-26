@@ -12,8 +12,8 @@ import {
   ReferenceLine,
 } from 'recharts';
 import { WorkoutSession } from '@/types/workout';
-
-const IS_CHINESE = true;
+import { toLocalDate } from '@/utils/workoutCalcs';
+import { IS_CHINESE } from './WorkoutUI';
 
 const TOOLTIP_STYLE: React.CSSProperties = {
   background: 'var(--wo-card-bg)',
@@ -37,7 +37,7 @@ const TrainingLoad = ({ workouts }: { workouts: WorkoutSession[] }) => {
     for (let i = 119; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      days.push(d.toISOString().slice(0, 10));
+      days.push(toLocalDate(d));
     }
 
     // EWMA decay constants

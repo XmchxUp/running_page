@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { WorkoutSession } from '@/types/workout';
 import { getExerciseMuscles } from '@/utils/workoutMuscles';
+import { toLocalDate } from '@/utils/workoutCalcs';
 import { IS_CHINESE } from './WorkoutUI';
 
 // RP-based volume landmarks (sets/week)
@@ -19,7 +20,7 @@ const LANDMARKS: Record<string, { label: string; labelCN: string; mev: number; m
 export default function VolumeLandmarks({ workouts }: { workouts: WorkoutSession[] }) {
   const weeklyVol = useMemo(() => {
     // Use last 4 weeks of data
-    const cutoff = new Date(Date.now() - 28 * 86400000).toISOString().slice(0, 10);
+    const cutoff = toLocalDate(new Date(Date.now() - 28 * 86400000));
     const recent = workouts.filter((w) => w.start_time.slice(0, 10) >= cutoff);
     const setsPerMuscle: Record<string, number> = {};
     recent.forEach((w) => {

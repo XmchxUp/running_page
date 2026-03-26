@@ -1,85 +1,91 @@
 import { useMemo } from 'react';
 import { WorkoutSession } from '@/types/workout';
+import { getExerciseMuscles, HEXA_AXES } from '@/utils/workoutMuscles';
+import { WORKING_SET_TYPES } from '@/utils/workoutCalcs';
 
 const IS_CHINESE = true;
 
-const HEXA_GROUPS = [
-  { key: 'chest',     label: '胸部', muscles: ['chest'],                            icon: '💓' },
-  { key: 'back',      label: '背部', muscles: ['back'],                             icon: '🦅' },
-  { key: 'shoulders', label: '肩部', muscles: ['shoulders'],                        icon: '🏔️' },
-  { key: 'arms',      label: '手臂', muscles: ['biceps', 'triceps'],                icon: '💪' },
-  { key: 'legs',      label: '腿部', muscles: ['quads', 'hamstrings', 'glutes', 'calves'], icon: '🦵' },
-  { key: 'core',      label: '核心', muscles: ['abs'],                              icon: '⚡' },
-];
+const GROUP_ICONS: Record<string, string> = {
+  chest: '💓', back: '🦅', shoulders: '🏔️', arms: '💪', legs: '🦵', core: '⚡',
+};
 
-// Inline muscle detection (copy from workouts.tsx logic)
-const MUSCLE_PATTERNS: Array<{ muscle: string; patterns: string[] }> = [
-  { muscle: 'chest',      patterns: ['bench press', 'chest', 'pec', 'fly', 'push up', 'pushup', 'dip'] },
-  { muscle: 'back',       patterns: ['row', 'pull', 'pulldown', 'deadlift', 'lat', 'pullover', 'chin'] },
-  { muscle: 'shoulders',  patterns: ['shoulder', 'lateral raise', 'front raise', 'upright row', 'military', 'shrug', 'arnold'] },
-  { muscle: 'biceps',     patterns: ['bicep', 'curl', 'hammer', 'preacher', 'concentration'] },
-  { muscle: 'triceps',    patterns: ['tricep', 'pushdown', 'pressdown', 'overhead extension', 'skullcrusher', 'close grip'] },
-  { muscle: 'quads',      patterns: ['squat', 'leg press', 'leg extension', 'hack squat', 'lunge', 'step up'] },
-  { muscle: 'hamstrings', patterns: ['hamstring', 'romanian', 'leg curl', 'lying leg curl', 'seated leg curl'] },
-  { muscle: 'glutes',     patterns: ['glute', 'hip thrust', 'hip extension', 'donkey kick', 'bridge'] },
-  { muscle: 'calves',     patterns: ['calf', 'calf raise'] },
-  { muscle: 'abs',        patterns: ['crunch', 'sit up', 'plank', 'leg raise', 'ab ', 'abs', 'core', 'russian twist', 'torso rotation'] },
-];
-const getExerciseMuscles = (name: string): string[] => {
-  const lower = name.toLowerCase();
-  return MUSCLE_PATTERNS.filter(({ patterns }) => patterns.some((p) => lower.includes(p))).map(({ muscle }) => muscle);
+// Recovery hours based on working set count — more reliable than raw volume
+// (volume varies 10× between exercises/individuals; sets are consistent)
+const recoveryHoursFromSets = (sets: number): number => {
+  if (sets >= 12) return 72;
+  if (sets >= 8)  return 60;
+  if (sets >= 4)  return 48;
+  return 36;
 };
 
 const MuscleRecovery = ({ workouts }: { workouts: WorkoutSession[] }) => {
-  const now = Date.now();
-
   const recovery = useMemo(() => {
-    return HEXA_GROUPS.map((group) => {
-      // Find most recent session that trained this muscle group
-      let lastDate: Date | null = null;
-      let intensity = 0;
+    // Compute `now` inside memo — avoids invalidating cache on every render
+    const now = Date.now();
 
-      const sorted = [...workouts].sort((a, b) => b.start_time.localeCompare(a.start_time));
-      for (const w of sorted) {
-        const sessionMuscles = new Set<string>();
-        let vol = 0;
-        w.exercises.forEach((ex) => {
-          const muscles = getExerciseMuscles(ex.name);
-          muscles.forEach((m) => sessionMuscles.add(m));
-          if (group.muscles.some((gm) => muscles.includes(gm))) {
-            const sets = ex.sets.filter((s) => ['normal','dropset','failure'].includes(s.type));
-            vol += sets.reduce((s, t) => s + (t.weight_kg ?? 0) * (t.reps ?? 0), 0);
-          }
-        });
-        if (group.muscles.some((m) => sessionMuscles.has(m))) {
-          lastDate = new Date(w.start_time);
-          intensity = vol;
-          break;
-        }
+    return HEXA_AXES.map((group) => {
+      // Find all sessions that involved this muscle group, sorted newest first
+      const relevantSessions = workouts
+        .filter((w) => {
+          const sessionMuscles = new Set(w.exercises.flatMap((ex) => getExerciseMuscles(ex.name)));
+          return group.muscles.some((m) => sessionMuscles.has(m));
+        })
+        .sort((a, b) => b.start_time.localeCompare(a.start_time));
+
+      if (relevantSessions.length === 0) {
+        return {
+          ...group, icon: GROUP_ICONS[group.key] ?? '•',
+          pct: 100, hoursAgo: null, status: 'never' as const, hoursLeft: 0, effectiveSets: 0,
+        };
       }
 
-      if (!lastDate) return { ...group, pct: 100, hoursAgo: null, status: 'never' as const, hoursLeft: 0 };
-
+      const lastDate = new Date(relevantSessions[0].start_time);
       const hoursAgo = (now - lastDate.getTime()) / 3600000;
-      const recoveryHours = intensity > 5000 ? 72 : intensity > 2000 ? 60 : 48;
+
+      // Accumulate effective sets across recent sessions with exponential time decay:
+      // effectiveSets = Σ (sets_in_session × 0.5^(hours_ago / 24))
+      // This means a session from 24h ago counts half as much, 48h ago counts 25%, etc.
+      // Sessions older than 4 days (96h) contribute negligibly and are ignored.
+      let effectiveSets = 0;
+      for (const w of relevantSessions) {
+        const sessionHoursAgo = (now - new Date(w.start_time).getTime()) / 3600000;
+        if (sessionHoursAgo > 96) break; // sorted by recency, so we can break early
+
+        const decayFactor = Math.pow(0.5, sessionHoursAgo / 24);
+        let sessionSets = 0;
+        w.exercises.forEach((ex) => {
+          const muscles = getExerciseMuscles(ex.name);
+          if (group.muscles.some((gm) => muscles.includes(gm))) {
+            sessionSets += ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type)).length;
+          }
+        });
+        effectiveSets += sessionSets * decayFactor;
+      }
+
+      const recoveryHours = recoveryHoursFromSets(Math.round(effectiveSets));
       const pct = Math.min(100, Math.round((hoursAgo / recoveryHours) * 100));
       const hoursLeft = Math.max(0, Math.round(recoveryHours - hoursAgo));
 
       return {
         ...group,
+        icon: GROUP_ICONS[group.key] ?? '•',
         pct,
         hoursAgo: Math.round(hoursAgo),
         status: pct >= 95 ? 'ready' as const : pct >= 60 ? 'partial' as const : 'rest' as const,
         hoursLeft,
-        intensity,
+        effectiveSets: Math.round(effectiveSets),
       };
     });
-  }, [workouts, now]);
+  }, [workouts]);
 
   const statusColor = (s: string) =>
     s === 'ready' ? '#22c55e' : s === 'partial' ? '#f59e0b' : '#ef4444';
+
   const statusLabel = (s: string) =>
-    s === 'ready' ? '✓ 可以训练' : s === 'never' ? '从未训练' : s === 'partial' ? '部分恢复' : '需要休息';
+    s === 'ready'   ? (IS_CHINESE ? '✓ 可以训练' : '✓ Ready') :
+    s === 'never'   ? (IS_CHINESE ? '从未训练'   : 'Never')   :
+    s === 'partial' ? (IS_CHINESE ? '部分恢复'   : 'Partial') :
+                      (IS_CHINESE ? '需要休息'   : 'Rest');
 
   return (
     <div>
@@ -92,19 +98,28 @@ const MuscleRecovery = ({ workouts }: { workouts: WorkoutSession[] }) => {
             <div className="flex items-center justify-between mb-1">
               <span className="flex items-center gap-1.5 text-sm">
                 <span>{r.icon}</span>
-                <span style={{ opacity: 0.8, fontWeight: 500 }}>{IS_CHINESE ? r.label : r.key}</span>
+                <span style={{ opacity: 0.8, fontWeight: 500 }}>
+                  {IS_CHINESE ? r.label : r.key}
+                </span>
+                {r.effectiveSets > 0 && (
+                  <span style={{ fontSize: 10, opacity: 0.28 }}>·{r.effectiveSets}组</span>
+                )}
               </span>
               <div className="flex items-center gap-2">
                 {r.hoursAgo !== null && (
                   <span style={{ fontSize: 10, opacity: 0.4 }}>
-                    {r.hoursAgo < 24 ? `${r.hoursAgo}h前` : `${Math.round(r.hoursAgo/24)}d前`}
+                    {r.hoursAgo < 24
+                      ? `${r.hoursAgo}h${IS_CHINESE ? '前' : ' ago'}`
+                      : `${Math.round(r.hoursAgo / 24)}d${IS_CHINESE ? '前' : ' ago'}`}
                   </span>
                 )}
                 <span style={{
                   fontSize: 10, fontWeight: 600, padding: '1px 7px', borderRadius: 99,
                   background: statusColor(r.status) + '20', color: statusColor(r.status),
                 }}>
-                  {r.status === 'ready' || r.status === 'never' ? statusLabel(r.status) : `${r.hoursLeft}h后恢复`}
+                  {r.status === 'ready' || r.status === 'never'
+                    ? statusLabel(r.status)
+                    : `${r.hoursLeft}h${IS_CHINESE ? '后恢复' : ' left'}`}
                 </span>
               </div>
             </div>
@@ -124,7 +139,9 @@ const MuscleRecovery = ({ workouts }: { workouts: WorkoutSession[] }) => {
         ))}
       </div>
       <div style={{ fontSize: 10, opacity: 0.3, marginTop: 12, textAlign: 'right' }}>
-        基于最近训练时间 + 强度估算 · 仅供参考
+        {IS_CHINESE
+          ? '基于有效组数（含时间衰减）估算 · 仅供参考'
+          : 'Based on set count with time decay · Estimate only'}
       </div>
     </div>
   );

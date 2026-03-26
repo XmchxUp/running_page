@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { WorkoutSession } from '@/types/workout';
-import { calcStreak, calcE1RM } from '@/utils/workoutCalcs';
+import { calcStreak, calcE1RM, WARMUP_NAMES, WORKING_SET_TYPES } from '@/utils/workoutCalcs';
 import { getExerciseMuscles, HEXA_AXES } from '@/utils/workoutMuscles';
 import { IS_CHINESE } from './WorkoutUI';
 
@@ -86,8 +86,6 @@ export const calcAchievMeta = (workouts: WorkoutSession[]): AchievMeta => {
   const CORE_M = new Set(['abs']);
   const SHLDR_M = new Set(['shoulders']);
   const ARM_M  = new Set(['biceps','triceps']);
-  const CHEST_M = new Set(['chest']);
-  const BACK_M  = new Set(['back']);
 
   sorted.forEach((w) => {
     const d = w.start_time.slice(0, 10);
@@ -132,12 +130,12 @@ export const calcAchievMeta = (workouts: WorkoutSession[]): AchievMeta => {
     const sessionMuscles = new Set<string>();
 
     w.exercises.forEach((ex) => {
-      if (['warm up','warmup'].includes(ex.name.toLowerCase())) return;
+      if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
       exNames.add(ex.name); sessionExCount++;
       const muscles = getExerciseMuscles(ex.name);
       muscles.forEach((m) => { muscleSet.add(m); sessionMuscles.add(m); });
 
-      const sets = ex.sets.filter((s) => ['normal','dropset','failure'].includes(s.type));
+      const sets = ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type));
       const exVol = sets.reduce((s,t) => s + (t.weight_kg??0)*(t.reps??0), 0);
       if (muscles.includes('chest')) chestVolume += exVol;
       if (muscles.includes('back'))  backVolume  += exVol;

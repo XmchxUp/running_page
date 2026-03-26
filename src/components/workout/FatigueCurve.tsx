@@ -4,6 +4,7 @@ import {
   CartesianGrid, ReferenceLine, ReferenceArea,
 } from 'recharts';
 import type { WorkoutSession } from '@/types/workout';
+import { WARMUP_NAMES, WORKING_SET_TYPES } from '@/utils/workoutCalcs';
 import { IS_CHINESE, TOOLTIP_STYLE } from './WorkoutUI';
 
 export default function FatigueCurve({ workouts }: { workouts: WorkoutSession[] }) {
@@ -13,8 +14,8 @@ export default function FatigueCurve({ workouts }: { workouts: WorkoutSession[] 
 
     workouts.forEach((w) => {
       const exs = w.exercises.filter((e) => {
-        if (['warm up', 'warmup'].includes(e.name.toLowerCase())) return false;
-        const hasWeight = e.sets.some((s) => ['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps);
+        if (WARMUP_NAMES.has(e.name.toLowerCase())) return false;
+        const hasWeight = e.sets.some((s) => WORKING_SET_TYPES.has(s.type) && s.weight_kg && s.reps);
         return hasWeight;
       });
       if (exs.length < 2) return;
@@ -22,7 +23,7 @@ export default function FatigueCurve({ workouts }: { workouts: WorkoutSession[] 
       const vols = exs.map((ex) => {
         let v = 0;
         ex.sets.forEach((s) => {
-          if (['normal', 'dropset', 'failure'].includes(s.type) && s.weight_kg && s.reps)
+          if (WORKING_SET_TYPES.has(s.type) && s.weight_kg && s.reps)
             v += s.weight_kg * s.reps;
         });
         return v;

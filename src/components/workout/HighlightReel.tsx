@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react';
 import { WorkoutSession } from '@/types/workout';
+import { calcE1RM, WORKING_SET_TYPES } from '@/utils/workoutCalcs';
 import { translateExercise } from '@/utils/exerciseTranslations';
-
-const IS_CHINESE = true;
-
-const calcE1RM = (weight: number, reps: number) => weight * (1 + reps / 30);
+import { IS_CHINESE } from './WorkoutUI';
 
 type Highlight = {
   id: string;
@@ -80,7 +78,7 @@ const buildHighlights = (workouts: WorkoutSession[]): Highlight[] => {
   for (const w of sorted) {
     for (const ex of w.exercises) {
       for (const s of ex.sets) {
-        if (!['normal', 'dropset', 'failure'].includes(s.type) || !s.weight_kg || !s.reps) continue;
+        if (!WORKING_SET_TYPES.has(s.type) || !s.weight_kg || !s.reps) continue;
         const e1rm = calcE1RM(s.weight_kg, s.reps);
         if (e1rm > maxE1RM) {
           for (const m of e1rmMilestones) {

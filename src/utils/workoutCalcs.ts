@@ -1,17 +1,23 @@
 import type { WorkoutSession } from '@/types/workout';
 
+// Shared filter constants — avoids repeated inline arrays throughout the codebase
+export const WARMUP_NAMES = new Set(['warm up', 'warmup']);
+export const WORKING_SET_TYPES = new Set(['normal', 'dropset', 'failure']);
+
+// Local date string — avoids toISOString() UTC offset shifting the date in UTC+8
+export const toLocalDate = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Linear regression — least squares
+// Linear regression — least squares (single-pass, was 5 separate reduce calls)
 // ─────────────────────────────────────────────────────────────────────────────
 export const linearRegression = (
   pts: Array<{ x: number; y: number }>
 ): { slope: number; intercept: number } => {
   const n = pts.length;
   if (n < 2) return { slope: 0, intercept: pts[0]?.y ?? 0 };
-  const sumX = pts.reduce((s, p) => s + p.x, 0);
-  const sumY = pts.reduce((s, p) => s + p.y, 0);
-  const sumXY = pts.reduce((s, p) => s + p.x * p.y, 0);
-  const sumXX = pts.reduce((s, p) => s + p.x * p.x, 0);
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  for (const p of pts) { sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumXX += p.x * p.x; }
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
   const intercept = (sumY - slope * sumX) / n;
   return { slope, intercept };
@@ -52,7 +58,6 @@ export const calcExerciseCoMatrix = (
   return { exercises: top, matrix };
 };
 
-
 // Exercises where lower weight = stronger (assisted resistance helps less = harder)
 const ASSISTED_PATTERN = /assisted/i;
 export const isAssisted = (name: string): boolean => ASSISTED_PATTERN.test(name);
@@ -91,7 +96,7 @@ export const calcStreak = (workouts: WorkoutSession[]): { current: number; longe
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Best lifts — ranked by e1RM
+// Best lifts — non-assisted ranked by e1RM desc, assisted by e1RM asc (lower = harder)
 // ─────────────────────────────────────────────────────────────────────────────
 export const calcBestLifts = (
   workouts: WorkoutSession[], topN = 6
@@ -99,9 +104,9 @@ export const calcBestLifts = (
   const best: Record<string, { weight: number; reps: number; e1rm: number; date: string }> = {};
   [...workouts].sort((a, b) => a.start_time.localeCompare(b.start_time)).forEach((w) => {
     w.exercises.forEach((ex) => {
-      if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+      if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
       ex.sets.forEach((s) => {
-        if (!['normal', 'dropset', 'failure'].includes(s.type)) return;
+        if (!WORKING_SET_TYPES.has(s.type)) return;
         const kg = s.weight_kg ?? 0, reps = s.reps ?? 1;
         if (kg > 0) {
           const e1rm = calcE1RM(kg, reps);
@@ -111,8 +116,10 @@ export const calcBestLifts = (
       });
     });
   });
-  return Object.entries(best).map(([name, d]) => ({ name, ...d }))
-    .sort((a, b) => b.e1rm - a.e1rm).slice(0, topN);
+  const entries = Object.entries(best).map(([name, d]) => ({ name, ...d }));
+  const normal = entries.filter((e) => !isAssisted(e.name)).sort((a, b) => b.e1rm - a.e1rm);
+  const assisted = entries.filter((e) => isAssisted(e.name)).sort((a, b) => a.e1rm - b.e1rm);
+  return [...normal, ...assisted].slice(0, topN);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,12 +131,12 @@ export const buildExerciseHistory = (workouts: WorkoutSession[]): ExHistory => {
   const history: ExHistory = {};
   [...workouts].sort((a, b) => a.start_time.localeCompare(b.start_time)).forEach((w) => {
     w.exercises.forEach((ex) => {
-      if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+      if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
       const assisted = isAssisted(ex.name);
       // For assisted exercises, the "hardest" set has the LOWEST e1RM (least assistance used)
       let bestE1rm = assisted ? Infinity : 0, bestWeight = 0, bestReps = 0, sessionVol = 0;
       ex.sets.forEach((s) => {
-        if (!['normal', 'dropset', 'failure'].includes(s.type)) return;
+        if (!WORKING_SET_TYPES.has(s.type)) return;
         if (s.weight_kg && s.reps) {
           const e1rm = calcE1RM(s.weight_kg, s.reps);
           sessionVol += s.weight_kg * s.reps;
@@ -170,12 +177,12 @@ export const calcSessionScores = (workouts: WorkoutSession[]): Record<string, nu
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Stagnation
+// Stagnation — accepts optional pre-built history to avoid duplicate computation
 // ─────────────────────────────────────────────────────────────────────────────
-export const calcStagnation = (workouts: WorkoutSession[], threshold = 3) => {
-  const history = buildExerciseHistory(workouts);
+export const calcStagnation = (workouts: WorkoutSession[], threshold = 3, history?: ExHistory) => {
+  const h = history ?? buildExerciseHistory(workouts);
   const result: Array<{ name: string; sessionsSincePR: number; bestE1rm: number; lastPRDate: string }> = [];
-  for (const [name, sessions] of Object.entries(history)) {
+  for (const [name, sessions] of Object.entries(h)) {
     if (sessions.length < threshold) continue;
     const assisted = isAssisted(name);
     // For assisted exercises, progress = lower e1RM (less assistance = harder)
@@ -192,20 +199,20 @@ export const calcStagnation = (workouts: WorkoutSession[], threshold = 3) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Progressive overload
+// Progressive overload — accepts optional pre-built history to avoid duplicate computation
 // ─────────────────────────────────────────────────────────────────────────────
-export const calcProgressiveOverload = (workouts: WorkoutSession[]) => {
-  const history = buildExerciseHistory(workouts);
-  return Object.entries(history)
-    .filter(([_, h]) => h.length >= 3)
-    .map(([name, h]) => {
+export const calcProgressiveOverload = (workouts: WorkoutSession[], history?: ExHistory) => {
+  const h = history ?? buildExerciseHistory(workouts);
+  return Object.entries(h)
+    .filter(([, sessions]) => sessions.length >= 3)
+    .map(([name, sessions]) => {
       const assisted = isAssisted(name);
-      const firstE1rm = h[0].e1rm, lastE1rm = h[h.length - 1].e1rm;
+      const firstE1rm = sessions[0].e1rm, lastE1rm = sessions[sessions.length - 1].e1rm;
       const rawPct = Math.round(((lastE1rm - firstE1rm) / firstE1rm) * 100);
       // For assisted exercises: lower e1rm over time = less assistance used = real progress
       // Invert the sign so the UI correctly shows green for improvement
       const pctChange = assisted ? -rawPct : rawPct;
-      return { name, firstE1rm, lastE1rm, pctChange, sessions: h.length, assisted };
+      return { name, firstE1rm, lastE1rm, pctChange, sessions: sessions.length, assisted };
     })
     .filter((x) => x.pctChange !== 0)
     .sort((a, b) => b.pctChange - a.pctChange);
@@ -219,12 +226,12 @@ export const buildPRTimeline = (workouts: WorkoutSession[]) => {
   const allTimeBest: Record<string, number> = {};
   [...workouts].sort((a, b) => a.start_time.localeCompare(b.start_time)).forEach((w) => {
     w.exercises.forEach((ex) => {
-      if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+      if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
       const assisted = isAssisted(ex.name);
       // For assisted: hardest set = lowest e1rm (least assistance used)
       let bestE1rm = assisted ? Infinity : 0, bestWeight = 0, bestReps = 0;
       ex.sets.forEach((s) => {
-        if (!['normal', 'dropset', 'failure'].includes(s.type)) return;
+        if (!WORKING_SET_TYPES.has(s.type)) return;
         if (s.weight_kg && s.reps) {
           const e1rm = calcE1RM(s.weight_kg, s.reps);
           const better = assisted ? e1rm < bestE1rm : e1rm > bestE1rm;

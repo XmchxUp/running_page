@@ -12,6 +12,7 @@ import {
   LEGS_MUSCLES,
   CORE_MUSCLES,
 } from '@/utils/workoutMuscles';
+import { WARMUP_NAMES, WORKING_SET_TYPES } from '@/utils/workoutCalcs';
 import { IS_CHINESE, TOOLTIP_STYLE } from './WorkoutUI';
 
 type MDistPeriod = 'week' | 'month' | 'year';
@@ -42,10 +43,10 @@ const MuscleDistributionPanel = ({ workouts }: { workouts: WorkoutSession[] }) =
       const key = getBucket(w.start_time.slice(0, 10), period);
       if (!buckets[key]) buckets[key] = {};
       w.exercises.forEach((ex) => {
-        if (['warm up', 'warmup'].includes(ex.name.toLowerCase())) return;
+        if (WARMUP_NAMES.has(ex.name.toLowerCase())) return;
         const muscles = getExerciseMuscles(ex.name);
         if (!muscles.length) return;
-        const sets = ex.sets.filter((s) => ['normal', 'dropset', 'failure'].includes(s.type));
+        const sets = ex.sets.filter((s) => WORKING_SET_TYPES.has(s.type));
         const vol = sets.reduce((s, set) => s + (set.weight_kg ?? 0) * (set.reps ?? 0), 0);
         const contrib = vol > 0 ? vol / 1000 : sets.length * 0.05;
         muscles.forEach((m) => { active.add(m); buckets[key][m] = (buckets[key][m] || 0) + contrib; });

@@ -2,8 +2,8 @@ import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { WorkoutSession } from '@/types/workout';
 import { formatDuration } from '@/hooks/useWorkouts';
-
-const IS_CHINESE = true;
+import { IS_CHINESE } from './WorkoutUI';
+import { toLocalDate } from '@/utils/workoutCalcs';
 
 type Period = 'month' | 'year' | 'quarter';
 
@@ -22,10 +22,10 @@ const getPeriodDates = (
   const m = now.getMonth(); // 0-indexed
 
   if (period === 'month') {
-    const currStart = new Date(y, m, 1).toISOString().slice(0, 10);
-    const currEnd = now.toISOString().slice(0, 10);
-    const prevStart = new Date(y, m - 1, 1).toISOString().slice(0, 10);
-    const prevEnd = new Date(y, m, 0).toISOString().slice(0, 10);
+    const currStart = toLocalDate(new Date(y, m, 1));
+    const currEnd = toLocalDate(now);
+    const prevStart = toLocalDate(new Date(y, m - 1, 1));
+    const prevEnd = toLocalDate(new Date(y, m, 0));
     const monthNames = [
       '1月', '2月', '3月', '4月', '5月', '6月',
       '7月', '8月', '9月', '10月', '11月', '12月',
@@ -36,10 +36,10 @@ const getPeriodDates = (
       label: [monthNames[m], monthNames[(m - 1 + 12) % 12]],
     };
   } else if (period === 'quarter') {
-    const qStart = new Date(y, Math.floor(m / 3) * 3, 1).toISOString().slice(0, 10);
-    const currEnd = now.toISOString().slice(0, 10);
-    const pqStart = new Date(y, Math.floor(m / 3) * 3 - 3, 1).toISOString().slice(0, 10);
-    const pqEnd = new Date(y, Math.floor(m / 3) * 3, 0).toISOString().slice(0, 10);
+    const qStart = toLocalDate(new Date(y, Math.floor(m / 3) * 3, 1));
+    const currEnd = toLocalDate(now);
+    const pqStart = toLocalDate(new Date(y, Math.floor(m / 3) * 3 - 3, 1));
+    const pqEnd = toLocalDate(new Date(y, Math.floor(m / 3) * 3, 0));
     return {
       curr: [qStart, currEnd],
       prev: [pqStart, pqEnd],
@@ -47,7 +47,7 @@ const getPeriodDates = (
     };
   } else {
     return {
-      curr: [`${y}-01-01`, now.toISOString().slice(0, 10)],
+      curr: [`${y}-01-01`, toLocalDate(now)],
       prev: [`${y - 1}-01-01`, `${y - 1}-12-31`],
       label: [`${y}年`, `${y - 1}年`],
     };
