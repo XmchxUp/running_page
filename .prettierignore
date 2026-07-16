@@ -2,4 +2,5 @@ src/static/activities.json
 src/static/world.zh.json
 src/assets/china-provinces.json
 src/themes/classic/static/world.zh.json
+imported.json
 pnpm-lock.yaml
